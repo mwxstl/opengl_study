@@ -108,8 +108,8 @@ bool VBOMesh::initialize(const FbxMesh* pMesh)
 	glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
 	glBufferData(GL_ARRAY_BUFFER, lPolygonVertexCount * 4 * sizeof(GLfloat), lVertices, GL_STATIC_DRAW);
 	delete[] lVertices;
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBONames[INDEX_VBO]);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, lPolygonCount * 3 * sizeof(GLuint), indices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBONames[INDEX_VBO]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, lPolygonCount * 3 * sizeof(GLuint), indices, GL_STATIC_DRAW);
 	cout << "polygon vertices count: " << lPolygonVertexCount << " polygonCount: " << lPolygonCount << endl;
 	delete[] indices;
 	return true;
@@ -121,8 +121,8 @@ void VBOMesh::draw(ESContext *esContext, FbxAMatrix globalTransform) const {
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBONames[INDEX_VBO]);
-	const FbxVector4 s(0.001, 0.001, 0.001);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBONames[INDEX_VBO]);
+	const FbxVector4 s(0.01, 0.01, 0.01);
 	const FbxVector4 t(0, 0, 0);
 	globalTransform.SetIdentity();
 	FbxAMatrix sm;
@@ -150,12 +150,11 @@ void VBOMesh::draw(ESContext *esContext, FbxAMatrix globalTransform) const {
 	esTranslate(&trans, tx, ty, tz);
 	esMatrixMultiply(&mvp, &trans, &(userData->sceneContext->getESMatrix()));*/
 	//glUniformMatrix4fv(userData->sceneContext->getMvpLoc(), 1, GL_FALSE, (GLfloat *)&(mvp.m[0][0]));
-	glDrawArrays(GL_TRIANGLES, 0, mCount);
-
+	//glDrawArrays(GL_TRIANGLES, 0, mCount);
 	//glBindBuffer(GL_ARRAY_BUFFER, 0);
-	//glDrawElements(GL_TRIANGLES, mCount, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, mCount, GL_UNSIGNED_INT, 0);
 
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 

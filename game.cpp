@@ -88,8 +88,8 @@ bool loadProgram(ESContext* esContext)
 bool loadScene(ESContext* esContext)
 {
 	UserData *userData = (UserData *)esContext->userData;
-	FbxString filePath("F:\\resources\\farm-life\\Map_7.fbx");
-	//FbxString filePath("F:\\resources\\farm-life\\Animals\\Animals\\Static\\Bull.fbx");
+	//FbxString filePath("F:\\resources\\farm-life\\Map_7.fbx");
+	FbxString filePath("F:\\resources\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
 	try
 	{
 		userData->sceneContext = new SceneContext(filePath, esContext->width, esContext->height, glGetUniformLocation(userData->programObject, "u_mvpMatrix"));
