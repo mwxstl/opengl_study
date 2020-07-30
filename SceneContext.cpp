@@ -158,7 +158,6 @@ void parseNode(FbxNode* node)
 }
 void SceneContext::loadCacheRecursive(FbxScene* pScene)
 {
-	cout << "asfdasdf" << endl;
 	loadCacheRecursive(pScene->GetRootNode());
 }
 
@@ -252,9 +251,11 @@ void drawMesh(FbxNode *pNode, ESContext *esContext)
 
 	if (lMeshCache)
 	{
-		lMeshCache->draw(esContext);
+		FbxMatrix mvpMatrix = pNode->EvaluateGlobalTransform();
+		lMeshCache->draw(esContext, pNode->EvaluateGlobalTransform());
 	} else
 	{
+		
 	}
 }
 void drawNode(FbxNode *pNode, ESContext *esContext)

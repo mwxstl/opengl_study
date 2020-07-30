@@ -17,7 +17,7 @@ public:
 	~VBOMesh();
 
 	bool initialize(const FbxMesh *pMesh);
-	void draw(ESContext *esContext) const;
+	void draw(ESContext *esContext, FbxAMatrix globalTransform) const;
 	int mCount;
 
 private:
