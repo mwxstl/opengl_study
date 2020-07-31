@@ -1,6 +1,7 @@
 #include "SceneContext.h"
 #include <vector>
 #include "SceneCache.h"
+#include "UserData.h"
 SceneContext::SceneContext(const char* pFileName, int pWindowWidth, int pWindowHeight, GLint pMvpLoc)
 	:mFileName(pFileName), mSceneStatus(UNLOADED),
 mManager(NULL), mScene(NULL), mImporter(NULL),
@@ -34,6 +35,7 @@ mMvpLoc(pMvpLoc), mAngle(0), vboIds{0, 0}
 	if (!mImporter->Initialize(mFileName, -1, mManager->GetIOSettings()))
 	{
 		cout << "error: unable to initialize importer!" << endl;
+		
 		exit(1);
 	}
 
@@ -158,41 +160,56 @@ void parseNode(FbxNode* node)
 }
 void SceneContext::loadCacheRecursive(FbxScene* pScene)
 {
+	//load the textures into gpu, only for file texture now
+	const int count = pScene->GetTextureCount();
+	for (int i = 0; i < count; i++)
+	{
+		FbxTexture *texture = pScene->GetTexture(i);
+		FbxFileTexture *fileTexture = FbxCast<FbxFileTexture>(texture);
+		if (fileTexture && !fileTexture->GetUserDataPtr())
+		{
+			//todo load
+		}
+		
+	}
 	loadCacheRecursive(pScene->GetRootNode());
 }
 
 void SceneContext::loadCacheRecursive(FbxNode* pNode)
 {
-	cout << "step 0" << endl;
-	//todo
 	//bake material and hook as user data
-
+	const int materialCount = pNode->GetMaterialCount();
+	for (int i = 0; i < materialCount; i++)
+	{
+		FbxSurfaceMaterial *material = pNode->GetMaterial(i);
+		if (material && !material->GetUserDataPtr())
+		{
+			FbxAutoPtr<MaterialCache> materialCache(new MaterialCache);
+			if (materialCache->initialize(material))
+			{
+				material->SetUserDataPtr(materialCache.Release());
+			}
+		}
+	}
 	//bake mesh as vbo into gpu
 	FbxNodeAttribute* lNodeAttribute = pNode->GetNodeAttribute();
 	if (lNodeAttribute)
 	{
-		cout << "step 1" << endl;
 		if (lNodeAttribute->GetAttributeType() == FbxNodeAttribute::eMesh)
 		{
-			cout << "step 2" << endl;
 			FbxMesh *lMesh = pNode->GetMesh();
 			if (lMesh && !lMesh->GetUserDataPtr())
 			{
-				cout << "step 3" << endl;
 				FbxAutoPtr<VBOMesh> lMeshCache(new VBOMesh);
 				if (lMeshCache->initialize(lMesh))
 				{
-					cout << "step 4" << endl;
 					lMesh->SetUserDataPtr(lMeshCache.Release());
-				} else
-				{
-					cout << "get bad";
 				}
 			}
 		}
 	}
 
-	int lChildCount = pNode->GetChildCount();
+	const int lChildCount = pNode->GetChildCount();
 	for (int i = 0; i < lChildCount; i++)
 	{
 		loadCacheRecursive(pNode->GetChild(i));
@@ -203,7 +220,6 @@ void SceneContext::loadCacheRecursive(FbxNode* pNode)
 bool SceneContext::loadFile()
 {
 	bool lResult = false;
-	cout << "loadfile" << endl;
 	mSceneStatus = MUST_BE_REFRESHED;
 
 	loadCacheRecursive(mScene);
@@ -251,9 +267,32 @@ void drawMesh(FbxNode *pNode, ESContext *esContext)
 
 	if (lMeshCache)
 	{
-		FbxMatrix mvpMatrix = pNode->EvaluateGlobalTransform();
-		lMeshCache->draw(esContext, pNode->EvaluateGlobalTransform());
-	} else
+		// begin draw
+		lMeshCache->beginDraw();
+		const int subMeshCount = lMeshCache->getSubMeshCount();
+		for (int i = 0; i < subMeshCount; i++)
+		{
+			const FbxSurfaceMaterial *material = pNode->GetMaterial(i);
+			if (material)
+			{
+				const MaterialCache *materialCache = static_cast<const MaterialCache *>(material->GetUserDataPtr());
+				GLint loc = glGetUniformLocation(((UserData *)esContext->userData)->programObject, "a_color");
+
+				if (materialCache)
+				{
+					materialCache->setCurrentMaterial(loc);
+				} else
+				{
+					materialCache->setDefaultMaterial(loc);
+				}
+			}
+			// draw
+			lMeshCache->draw(esContext, pNode->EvaluateGlobalTransform(), i);
+		}
+		//end draw
+		lMeshCache->endDraw();
+	}
+	else
 	{
 		
 	}

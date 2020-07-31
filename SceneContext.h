@@ -51,6 +51,10 @@ private:
 
 	GLint mMvpLoc;
 
+	GLint modelLoc;
+	GLint viewLoc;
+	GLint projectionLoc;
+
 	GLfloat mAngle;
 	ESMatrix mVpMatrix;
 };

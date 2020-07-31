@@ -50,7 +50,7 @@ LRESULT WINAPI ESWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
-
+		
 	case WM_CHAR:
 	{
 		POINT      point;

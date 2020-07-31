@@ -52,19 +52,26 @@ bool loadProgram(ESContext* esContext)
 	char vShaderStr[] =
 		"#version 300 es                          \n"
 		"uniform mat4 u_mvpMatrix;				  \n"
+		"uniform mat4 model;					  \n"
+		"uniform mat4 view;						  \n"
+		"uniform mat4 projection;				  \n"
+		"uniform vec4 a_color;					  \n"
 		"layout(location = 0) in vec4 vPosition;  \n"
+		"out vec4 v_color;						  \n"
 		"void main()                              \n"
 		"{                                        \n"
-		"   gl_Position =u_mvpMatrix * vPosition; \n"
+		"   gl_Position = u_mvpMatrix * vPosition; \n"
+		"	v_color = a_color;				  \n"
 		"}                                        \n";
 
 	char fShaderStr[] =
 		"#version 300 es                              \n"
 		"precision mediump float;                     \n"
+		"in vec4 v_color;"
 		"out vec4 fragColor;                          \n"
 		"void main()                                  \n"
 		"{                                            \n"
-		"   fragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );  \n"
+		"   fragColor = v_color;  \n"
 		"}                    ";
 
 	GLuint programObject;
@@ -89,7 +96,10 @@ bool loadScene(ESContext* esContext)
 {
 	UserData *userData = (UserData *)esContext->userData;
 	//FbxString filePath("F:\\resources\\farm-life\\Map_7.fbx");
-	FbxString filePath("F:\\resources\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
+	//FbxString filePath("F:\\resources\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
+	//FbxString filePath("D:\\resource\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
+	FbxString filePath("D:\\resource\\farm-life\\Buildings\\Stable.fbx");
+	//FbxString filePath("D:\\resource\\farm-life\\Map_7.fbx");
 	try
 	{
 		userData->sceneContext = new SceneContext(filePath, esContext->width, esContext->height, glGetUniformLocation(userData->programObject, "u_mvpMatrix"));
@@ -148,7 +158,6 @@ int esMain(ESContext *esContext)
 
 	if (!Init(esContext))
 	{
-		cout << "error" << endl;
 		return GL_FALSE;
 	}
 
