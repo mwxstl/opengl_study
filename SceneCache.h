@@ -1,24 +1,19 @@
 #pragma once
-#include "esUtil.h"
+#include "preh.h"
+
+class GameContext;
 
 class VBOMesh
 {
 public:
-	enum
-	{
-		VERTEX_VBO,
-		NORMAL_VBO,
-		UV_VBO,
-		INDEX_VBO,
-		VBO_COUNT,
-	};
+	
 
 	VBOMesh();
 	~VBOMesh();
 
 	bool initialize(const FbxMesh *pMesh);
 	void beginDraw() const;
-	void draw(ESContext *esContext, FbxAMatrix globalTransform, int materialIndex) const;
+	void draw(GameContext *gameContext, FbxAMatrix globalTransform, int materialIndex) const;
 	void endDraw() const;
 	int getSubMeshCount() const { return mSubMeshes.GetCount(); }
 	int mCount;
@@ -34,13 +29,20 @@ private:
 		int IndexOffset;
 		int TriangleCount;
 	};
+	enum
+	{
+		VERTEX_VBO,
+		NORMAL_VBO,
+		UV_VBO,
+		INDEX_VBO,
+		VBO_COUNT,
+	};
 	GLuint mVBONames[VBO_COUNT];
 	FbxArray<SubMesh *> mSubMeshes;
 	bool mHasNormal;
 	bool mHasUV;
 	bool mAllByControlPoint;
 };
-
 class MaterialCache
 {
 public:

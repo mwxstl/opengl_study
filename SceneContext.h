@@ -1,6 +1,6 @@
 #pragma once
-#include "esUtil.h"
-
+#include "preh.h"
+class GameContext;
 class SceneContext
 {
 public:
@@ -23,18 +23,17 @@ public:
 		ZOOM_FOCAL_LENGTH,
 		ZOOM_POSITION
 	};
-
-	SceneContext(const char* pFileName, int pWindowWidth, int pWindowHeight, GLint pMvpLoc);
+	SceneContext(const char* pFileName);
 	~SceneContext();
-	
+
 	SceneStatus getSceneStatus() const { return mSceneStatus; }
 	FbxScene *getScene() const { return mScene; }
-	GLint getMvpLoc() const { return mMvpLoc; }
-	ESMatrix getESMatrix() const { return mVpMatrix; };
+	
 	bool loadFile();
-	bool onDisplay(ESContext *esContext);
+	bool onDisplay(GameContext *gameContext);
 	
 
+	
 private:
 	void displayGrid();
 	void loadCacheRecursive(FbxScene* pScene);
@@ -45,16 +44,4 @@ private:
 	FbxManager *mManager;
 	FbxScene *mScene;
 	FbxImporter *mImporter;
-	int mWindowWidth, mWindowHeight;
-
-	GLuint vboIds[2];
-
-	GLint mMvpLoc;
-
-	GLint modelLoc;
-	GLint viewLoc;
-	GLint projectionLoc;
-
-	GLfloat mAngle;
-	ESMatrix mVpMatrix;
 };

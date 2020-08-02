@@ -1,7 +1,8 @@
+#include "preh.h"
 #include "SceneCache.h"
-#include "UserData.h"
-
-namespace 
+#include "GameContext.h"
+#include "ShaderProgram.h"
+namespace
 {
 	const int TRIANGLE_VERTEX_COUNT = 3;
 
@@ -47,7 +48,7 @@ namespace
 	}
 }
 
-VBOMesh::VBOMesh() : mHasNormal(false), mHasUV(false),mAllByControlPoint(true)
+VBOMesh::VBOMesh() : mHasNormal(false), mHasUV(false), mAllByControlPoint(true)
 {
 	for (int i = 0; i < VBO_COUNT; i++)
 	{
@@ -64,109 +65,6 @@ VBOMesh::~VBOMesh()
 	}
 	mSubMeshes.Clear();
 }
-//bool VBOMesh::initialize(const FbxMesh* pMesh)
-//{
-//	if (!pMesh->GetNode())
-//	{
-//		return false;
-//	}
-//	bool hasNormal = pMesh->GetElementNormalCount() > 0;
-//	bool hasUV = pMesh->GetElementUVCount() > 0;
-//	bool byControlPoint = true;
-//	FbxGeometryElement::EMappingMode normalMappingMode = FbxGeometryElement::eNone;
-//	FbxGeometryElement::EMappingMode uvMappingMode = FbxGeometryElement::eNone;
-//	if (hasNormal)
-//	{
-//		normalMappingMode = pMesh->GetElementNormal(0)->GetMappingMode();
-//		if (normalMappingMode == FbxGeometryElement::eNone)
-//		{
-//			hasNormal = false;
-//		}
-//		if (hasNormal && normalMappingMode != FbxGeometryElement::eByControlPoint)
-//		{
-//			byControlPoint = false;
-//		}
-//	}
-//
-//	if (hasUV)
-//	{
-//		uvMappingMode = pMesh->GetElementUV(0)->GetMappingMode();
-//		if (uvMappingMode == FbxGeometryElement::eNone)
-//		{
-//			hasUV = false;
-//		}
-//		if (hasUV && uvMappingMode != FbxGeometryElement::eByControlPoint)
-//		{
-//			byControlPoint = false;
-//		}
-//	}
-//	
-//	const int lPolygonCount = pMesh->GetPolygonCount();
-//	int lPolygonVertexCount = pMesh->GetControlPointsCount();
-//	if (!byControlPoint)
-//	{
-//		lPolygonVertexCount = lPolygonCount * 3;
-//	}
-//	GLfloat *lVertices = new GLfloat[lPolygonVertexCount * 4];
-//	GLuint *indices = new GLuint[lPolygonCount * 3];
-//
-//	FbxVector4 *lControlPoints = pMesh->GetControlPoints();
-//	FbxVector4 lCurrentVertex;
-//	if (byControlPoint)
-//	{
-//		for (int i = 0; i < lPolygonVertexCount; i++)
-//		{
-//			lCurrentVertex = lControlPoints[i];
-//			lVertices[i * 4] = static_cast<GLfloat>(lCurrentVertex[0]);
-//			lVertices[i * 4 + 1] = static_cast<GLfloat>(lCurrentVertex[1]);
-//			lVertices[i * 4 + 2] = static_cast<GLfloat>(lCurrentVertex[2]);
-//			lVertices[i * 4 + 3] = 1;
-//		}
-//	}
-//	
-//	int lVertexCount = 0;
-//	for (int lPolygonIndex = 0; lPolygonIndex < lPolygonCount; ++lPolygonIndex)
-//	{
-//		int lMaterialIndex = 0;
-//		for (int verticeIndex = 0; verticeIndex < 3; ++verticeIndex)
-//		{
-//			const int lControlPointIndex = pMesh->GetPolygonVertex(lPolygonIndex, verticeIndex);
-//			if (lControlPointIndex >= 0)
-//			{
-//				if (byControlPoint)
-//				{
-//					indices[lPolygonIndex * 3 + verticeIndex] = static_cast<GLuint>(lControlPointIndex);
-//
-//				}
-//				else
-//				{
-//					indices[lPolygonIndex * 3 + verticeIndex] = static_cast<GLuint>(lVertexCount);
-//
-//					lCurrentVertex = lControlPoints[lControlPointIndex];
-//					lVertices[lVertexCount * 4] = static_cast<float>(lCurrentVertex[0]);
-//					lVertices[lVertexCount * 4 + 1] = static_cast<float>(lCurrentVertex[1]);
-//					lVertices[lVertexCount * 4 + 2] = static_cast<float>(lCurrentVertex[2]);
-//					lVertices[lVertexCount * 4 + 3] = 1;
-//				}
-//			}
-//			++lVertexCount;
-//		}
-//	}
-//	mVerticesCount = lVertexCount;
-//	mIndicesCount = lVertexCount;
-//	mCount = lPolygonCount * 3;
-//	glGenBuffers(VBO_COUNT, mVBONames);
-//
-//	glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
-//	glBufferData(GL_ARRAY_BUFFER, lPolygonVertexCount * 4 * sizeof(GLfloat), lVertices, GL_STATIC_DRAW);
-//	delete[] lVertices;
-//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBONames[INDEX_VBO]);
-//	glBufferData(GL_ELEMENT_ARRAY_BUFFER, lPolygonCount * 3 * sizeof(GLuint), indices, GL_STATIC_DRAW);
-//	cout << "polygon vertices count: " << lPolygonVertexCount << " polygonCount: " << lPolygonCount << endl;
-//	delete[] indices;
-//	return true;
-//}
-
 
 bool VBOMesh::initialize(const FbxMesh* mesh)
 {
@@ -282,7 +180,7 @@ bool VBOMesh::initialize(const FbxMesh* mesh)
 	const FbxVector4 *controlPoints = mesh->GetControlPoints();
 	FbxVector4 currentVertex, currentNormal;
 	FbxVector2 currentUV;
-	
+
 	//populate the array with vertex attribute, if by control point.
 	if (mAllByControlPoint)
 	{
@@ -358,7 +256,7 @@ bool VBOMesh::initialize(const FbxMesh* mesh)
 					vertices[vertexCount * VERTEX_STRIDE + 1] = static_cast<GLfloat>(currentVertex[1]);
 					vertices[vertexCount * VERTEX_STRIDE + 2] = static_cast<GLfloat>(currentVertex[2]);
 					vertices[vertexCount * VERTEX_STRIDE + 3] = 1;
-					
+
 
 					if (mHasNormal)
 					{
@@ -386,7 +284,7 @@ bool VBOMesh::initialize(const FbxMesh* mesh)
 
 	glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
 	glBufferData(GL_ARRAY_BUFFER, polygonVertexCount * VERTEX_STRIDE * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
-	
+
 	delete[] vertices;
 	if (mHasNormal)
 	{
@@ -418,40 +316,91 @@ void VBOMesh::beginDraw() const
 	//todo normals
 	if (mHasNormal)
 	{
-		
+
 	}
 
 	//todo uvs
 	if (mHasUV)
 	{
-		
+
 	}
-	
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBONames[INDEX_VBO]);
 }
 
-void VBOMesh::draw(ESContext *esContext, FbxAMatrix globalTransform, int materialIndex) const {
-	UserData *userData = (UserData *)esContext->userData;
+GLfloat *getMatrix(FbxMatrix mat)
+{
+	GLfloat *ret = new GLfloat[16];
+	double *tmp = (double *)mat;
+	for (int i = 0; i < 16; i++)
+	{
+		ret[i] = tmp[i];
+	}
+	return ret;
+}
 
-	FbxAMatrix modelMatrix = globalTransform;
-	FbxAMatrix viewMatrix;
-	viewMatrix.SetIdentity();
-	ESMatrix projectionMatrix;
-	esPerspective(&projectionMatrix, 45.0f, (float)(esContext->width) / (float)(esContext->height), 0.1f, 100.0f);
-	
+void printMatrix(GLfloat *mat)
+{
+	cout << "===========================\n";
+
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			printf("%.2f ", mat[i * 4 + j]);
+		}
+		cout << endl;
+	}
+	cout << "===========================\n";
+}
+
+void VBOMesh::draw(GameContext *gameContext, FbxAMatrix globalTransform, int materialIndex) const
+{
 	const FbxVector4 scaleVector(0.001, 0.001, 0.001);
 	FbxAMatrix scaleMatrix;
 	scaleMatrix.SetIdentity();
-	//scaleMatrix.SetS(scaleVector);
-	double *tmpMatrix = (double *)(scaleMatrix * globalTransform);
+	scaleMatrix.SetS(scaleVector);
+
+	GLfloat* model = getMatrix(scaleMatrix * globalTransform);
+	glUniformMatrix4fv((gameContext->mShaderProgram)->modelLoc, 1, GL_FALSE, model);
+
+	FbxMatrix vvv;
+	FbxVector4 eyePosition(0, 0, 1);
+	FbxVector4 lookAt(0, 0, -1);
+	FbxVector4 upDirection(0, 1, 0);
 	
-	GLfloat *mvpMatrix = new GLfloat[16];
-	for (int i = 0; i < 16; i++)
-	{
-		mvpMatrix[i] = (GLfloat)tmpMatrix[i];
-	}
-	glUniformMatrix4fv(userData->sceneContext->getMvpLoc(), 1, GL_FALSE, mvpMatrix);
-	delete[] mvpMatrix;
+	vvv.SetLookAtRH(eyePosition, lookAt, upDirection);
+	GLfloat *view = getMatrix(vvv);
+	//GLfloat* view = getMatrix(gameContext->viewMatrix);
+	glUniformMatrix4fv((gameContext->mShaderProgram)->viewLoc, 1, GL_FALSE, view);
+
+	GLfloat left = -gameContext->mWidth, right = gameContext->mWidth;
+	GLfloat bottom = -gameContext->mHeight, top = gameContext->mHeight;
+	GLfloat nearr = -0.1, farr = -100.0;
+	FbxMatrix proj1, proj2, proj3;
+
+	proj1.Set(0, 0, 2 / (right - left));
+	proj1.Set(1, 1, 2 / (top - bottom));
+	proj1.Set(2, 2, 2 / (nearr - farr));
+
+	proj2.Set(0, 3, -(right + left) / 2);
+	proj2.Set(1, 3, -(top + bottom) / 2);
+	proj2.Set(2, 3, -(nearr + farr) / 2);
+
+	proj3.Set(0, 0, nearr);
+	proj3.Set(1, 1, farr);
+	proj3.Set(2, 2, (nearr + farr));
+	proj3.Set(2, 3, -(nearr * farr));
+	proj3.Set(3, 2, 1);
+	proj3.Set(3, 3, 0);
+	
+	//GLfloat *projection = getMatrix(proj1 * proj2 * proj3);
+	GLfloat *projection = getMatrix(gameContext->proMatrix);
+	glUniformMatrix4fv((gameContext->mShaderProgram)->proLoc, 1, GL_FALSE, projection);
+
+	delete[] model;
+	delete[] view;
+	delete[] projection;
 
 	GLsizei offset = mSubMeshes[materialIndex]->IndexOffset * sizeof(GLuint);
 	const GLsizei elementCount = mSubMeshes[materialIndex]->TriangleCount * 3;
@@ -467,12 +416,12 @@ void VBOMesh::endDraw() const
 
 MaterialCache::MaterialCache() :mShininess(0)
 {
-	
+
 }
 
 MaterialCache::~MaterialCache()
 {
-	
+
 }
 
 bool MaterialCache::initialize(const FbxSurfaceMaterial* pMaterial)
@@ -507,7 +456,7 @@ bool MaterialCache::initialize(const FbxSurfaceMaterial* pMaterial)
 		double shininess = shininessProperty.Get<FbxDouble>();
 		mShininess = static_cast<GLfloat>(shininess);
 	}
-	
+
 	return true;
 }
 
@@ -520,7 +469,7 @@ void MaterialCache::setCurrentMaterial(GLint location) const
 void MaterialCache::setDefaultMaterial(GLint location)
 {
 	//todo
-	GLfloat mmm[4] = { rand() % 10 /10.0f, rand() % 10 / 10.0f, rand() % 10 / 10.0f, 1.0f };
-	
+	GLfloat mmm[4] = { rand() % 10 / 10.0f, rand() % 10 / 10.0f, rand() % 10 / 10.0f, 1.0f };
+
 	glUniform4fv(location, 1, mmm);
 }
