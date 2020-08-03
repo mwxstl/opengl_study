@@ -7,12 +7,20 @@ class SceneContext;
 class GameContext
 {
 public:
-	GameContext();
+	GameContext(GLint pWidth, GLint pHeight);
 	~GameContext();
 	
 	GLint mWidth, mHeight;
-	
+	float mCurrentTheta;
+	float pitch, yaw;
+	float mMouseX, mMouseY;
 
+	FbxVector4 eyePos;
+	FbxVector4 lookAt;
+	FbxVector4 upDir;
+	
+	float eyeLength;
+	
 	ShaderProgram* mShaderProgram;
 	SceneContext* mSceneContext;
 
@@ -26,10 +34,21 @@ public:
 	FbxMatrix proMatrix;
 	bool loadShaderProgram();
 	bool loadScene(FbxString pFileName);
+	void setViewMatrix();
 	
 	void(*drawFunc) (GameContext *);
 	void(*shutdownFunc) (GameContext *);
 	void(*keyFunc) (GameContext *, unsigned char, int, int);
 	void(*updateFunc) (GameContext *, float deltaTime);
+	
+	enum CameraStatus
+	{
+		CAMERA_NOTHING,
+		CAMERA_ORBIT,	//
+		CAMERA_ZOOM,	//Ëõ·Å
+		CAMERA_PAN		//Æ½ÒÆ
+	};
+
+	CameraStatus mCameraStatus;
 	
 };

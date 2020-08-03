@@ -2,6 +2,7 @@
 #include "SceneCache.h"
 #include "GameContext.h"
 #include "ShaderProgram.h"
+#include "Transform.h"
 namespace
 {
 	const int TRIANGLE_VERTEX_COUNT = 3;
@@ -285,6 +286,7 @@ bool VBOMesh::initialize(const FbxMesh* mesh)
 	glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
 	glBufferData(GL_ARRAY_BUFFER, polygonVertexCount * VERTEX_STRIDE * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
 
+	
 	delete[] vertices;
 	if (mHasNormal)
 	{
@@ -356,52 +358,18 @@ void printMatrix(GLfloat *mat)
 
 void VBOMesh::draw(GameContext *gameContext, FbxAMatrix globalTransform, int materialIndex) const
 {
-	const FbxVector4 scaleVector(0.001, 0.001, 0.001);
-	FbxAMatrix scaleMatrix;
-	scaleMatrix.SetIdentity();
-	scaleMatrix.SetS(scaleVector);
-
-	GLfloat* model = getMatrix(scaleMatrix * globalTransform);
+	GLfloat* model = getMatrix(globalTransform);
 	glUniformMatrix4fv((gameContext->mShaderProgram)->modelLoc, 1, GL_FALSE, model);
 
-	FbxMatrix vvv;
-	FbxVector4 eyePosition(0, 0, 1);
-	FbxVector4 lookAt(0, 0, -1);
-	FbxVector4 upDirection(0, 1, 0);
-	
-	vvv.SetLookAtRH(eyePosition, lookAt, upDirection);
-	GLfloat *view = getMatrix(vvv);
-	//GLfloat* view = getMatrix(gameContext->viewMatrix);
+	GLfloat *view = getMatrix(gameContext->viewMatrix);
 	glUniformMatrix4fv((gameContext->mShaderProgram)->viewLoc, 1, GL_FALSE, view);
 
-	GLfloat left = -gameContext->mWidth, right = gameContext->mWidth;
-	GLfloat bottom = -gameContext->mHeight, top = gameContext->mHeight;
-	GLfloat nearr = -0.1, farr = -100.0;
-	FbxMatrix proj1, proj2, proj3;
-
-	proj1.Set(0, 0, 2 / (right - left));
-	proj1.Set(1, 1, 2 / (top - bottom));
-	proj1.Set(2, 2, 2 / (nearr - farr));
-
-	proj2.Set(0, 3, -(right + left) / 2);
-	proj2.Set(1, 3, -(top + bottom) / 2);
-	proj2.Set(2, 3, -(nearr + farr) / 2);
-
-	proj3.Set(0, 0, nearr);
-	proj3.Set(1, 1, farr);
-	proj3.Set(2, 2, (nearr + farr));
-	proj3.Set(2, 3, -(nearr * farr));
-	proj3.Set(3, 2, 1);
-	proj3.Set(3, 3, 0);
-	
-	//GLfloat *projection = getMatrix(proj1 * proj2 * proj3);
 	GLfloat *projection = getMatrix(gameContext->proMatrix);
 	glUniformMatrix4fv((gameContext->mShaderProgram)->proLoc, 1, GL_FALSE, projection);
 
 	delete[] model;
 	delete[] view;
 	delete[] projection;
-
 	GLsizei offset = mSubMeshes[materialIndex]->IndexOffset * sizeof(GLuint);
 	const GLsizei elementCount = mSubMeshes[materialIndex]->TriangleCount * 3;
 	glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, reinterpret_cast<const GLvoid *>(offset));

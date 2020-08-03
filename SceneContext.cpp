@@ -66,9 +66,17 @@ bool SceneContext::loadFile()
 
 		//convert unit system.
 		FbxSystemUnit sceneSystemUnit = mScene->GetGlobalSettings().GetSystemUnit();
-		if (sceneSystemUnit != 1.0)
+		if (sceneSystemUnit != FbxSystemUnit::cm)
 		{
-			FbxSystemUnit::cm.ConvertScene(mScene);
+			const FbxSystemUnit::ConversionOptions conversionOptions = {
+				false,
+				true,
+				true,
+				true,
+				true,
+				true
+			};
+			FbxSystemUnit::cm.ConvertScene(mScene, conversionOptions);
 		}
 
 		//convert mesh, nurbs and patch into triangle mesh

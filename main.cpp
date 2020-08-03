@@ -11,6 +11,7 @@ const int DEFAULT_WINDOW_HEIGHT = 720;
 //
 //      Main window procedure
 //
+#define WM_MOUSEWHELL 0x020A
 LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT  lRet = 1;
@@ -34,6 +35,81 @@ LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			ValidateRect(gameContext->eglNativeWindow, NULL);
 		}
+	}
+	break;
+	case WM_MOUSEWHEEL:
+	{
+		GameContext *gameContext = (GameContext *)(LONG_PTR)GetWindowLongPtr(hWnd, GWL_USERDATA);
+
+		short dir = 0;
+		dir = HIWORD(wParam);
+
+		FbxVector4 dirVec(gameContext->lookAt - gameContext->eyePos);
+		if (dir > 0)
+		{
+			gameContext->eyePos += dirVec * 0.1;
+			//gameContext->eyeLength -= gameContext->eyeLength / 10.0;
+			gameContext->setViewMatrix();
+		} else if (dir < 0)
+		{
+			gameContext->eyePos -= dirVec * 0.1;
+			//gameContext->eyeLength += gameContext->eyeLength / 10.0;
+			gameContext->setViewMatrix();
+		}
+	}
+	break;
+	case WM_LBUTTONDOWN:
+	{
+		GameContext *gameContext = (GameContext *)(LONG_PTR)GetWindowLongPtr(hWnd, GWL_USERDATA);
+		gameContext->mCameraStatus = gameContext->CAMERA_ORBIT;
+		POINT point;
+		GetCursorPos(&point);
+		gameContext->mMouseX = point.x;
+		gameContext->mMouseY = point.y;
+	}
+		break;
+	case WM_MOUSEMOVE:
+	{
+		GameContext *gameContext = (GameContext *)(LONG_PTR)GetWindowLongPtr(hWnd, GWL_USERDATA);
+		if (gameContext->mCameraStatus == gameContext->CAMERA_ORBIT)
+		{
+			POINT point;
+			GetCursorPos(&point);
+			gameContext->yaw += (point.x - gameContext->mMouseX) * 1.0 / 180.0;
+			gameContext->pitch += (point.y - gameContext->mMouseY) * 1.0 / 180.0;
+			gameContext->mMouseX = point.x;
+			gameContext->mMouseY = point.y;
+			
+			gameContext->setViewMatrix();
+			
+		} else if (gameContext->mCameraStatus == gameContext->CAMERA_PAN)
+		{
+			
+		}
+	}
+		break;
+	case WM_LBUTTONUP:
+	{
+		GameContext *gameContext = (GameContext *)(LONG_PTR)GetWindowLongPtr(hWnd, GWL_USERDATA);
+		gameContext->mCameraStatus = gameContext->CAMERA_NOTHING;
+	}
+		break;
+
+	case WM_MBUTTONDOWN:
+	{
+		GameContext *gameContext = (GameContext *)(LONG_PTR)GetWindowLongPtr(hWnd, GWL_USERDATA);
+		gameContext->mCameraStatus = gameContext->CAMERA_PAN;
+		POINT point;
+		GetCursorPos(&point);
+		gameContext->mMouseX = point.x;
+		gameContext->mMouseY = point.y;
+	}
+	break;
+	
+	case WM_MBUTTONUP:
+	{
+		GameContext *gameContext = (GameContext *)(LONG_PTR)GetWindowLongPtr(hWnd, GWL_USERDATA);
+		gameContext->mCameraStatus = gameContext->CAMERA_NOTHING;
 	}
 	break;
 
@@ -62,15 +138,28 @@ LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return lRet;
 }
 
-void update(GameContext *gameContext)
+void update(GameContext *gameContext, float deltaTime)
 {
-	
+	/*float theta = deltaTime * 40.0 / 180;
+	gameContext->mCurrentTheta += theta;
+	while (gameContext->mCurrentTheta >= 360.0f)
+	{
+		gameContext->mCurrentTheta -= 360.0f;
+	}*/
+	/*float px = 600.0 * sin(gameContext->mCurrentTheta);
+	float py = 600.0 * cos(gameContext->mCurrentTheta);
+	FbxMatrix vvv;
+	FbxVector4 eyePosition(px, 0, py);
+	FbxVector4 lookAt(0, 0, 0);
+	FbxVector4 upDirection(0, 1, 0);
+	vvv.SetLookAtRH(eyePosition, lookAt, upDirection);
+	gameContext->viewMatrix = vvv;*/
 }
 
 void draw(GameContext *gameContext)
 {
 	glViewport(0, 0, gameContext->mWidth, gameContext->mHeight);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(gameContext->mShaderProgram->programObject);
 	
 	gameContext->mShaderProgram->modelLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "modelMatrix");
@@ -302,9 +391,9 @@ bool createWindow(GameContext *gameContext, const char *gameName, GLint width, G
 
 int main(int arc, char *argv[])
 {
-	GameContext gameContext;
+	GameContext gameContext(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
-	if (!createWindow(&gameContext, GAME_NAME, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, ES_WINDOW_RGB))
+	if (!createWindow(&gameContext, GAME_NAME, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, ES_WINDOW_RGB | ES_WINDOW_DEPTH))
 	{
 		exit(1);
 	}
@@ -313,15 +402,18 @@ int main(int arc, char *argv[])
 		exit(1);
 	}
 	//FbxString fileName("F:\\resources\\farm-life\\Map_7.fbx");
-	FbxString fileName("F:\\resources\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
+	//FbxString fileName("F:\\resources\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
 	//FbxString fileName("D:\\resource\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
-	//FbxString fileName("D:\\resource\\farm-life\\Buildings\\Stable.fbx");
+	FbxString fileName("D:\\resource\\farm-life\\Buildings\\Stable.fbx");
+	//FbxString fileName("D:\\resource\\farm-life\\Props\\Lamp.fbx");
+	//FbxString fileName("D:\\resource\\farm-life\\Characters\\Characters\\Static\\Farmer.fbx");
 	//FbxString fileName("D:\\resource\\farm-life\\Map_7.fbx");
 	if (!gameContext.loadScene(fileName))
 	{
 		exit(1);
 	}
 	gameContext.drawFunc = draw;
+	gameContext.updateFunc = update;
 	gameContext.shutdownFunc = shutdown;
 	winLoop(&gameContext);
 
