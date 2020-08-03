@@ -12,6 +12,12 @@ const int DEFAULT_WINDOW_HEIGHT = 720;
 //      Main window procedure
 //
 #define WM_MOUSEWHELL 0x020A
+
+void printVector(FbxVector4 v)
+{
+	cout << v[0] << " " << v[1] << " " << v[2] << " " << endl;
+}
+
 LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT  lRet = 1;
@@ -48,12 +54,10 @@ LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (dir > 0)
 		{
 			gameContext->eyePos += dirVec * 0.1;
-			//gameContext->eyeLength -= gameContext->eyeLength / 10.0;
 			gameContext->setViewMatrix();
 		} else if (dir < 0)
 		{
 			gameContext->eyePos -= dirVec * 0.1;
-			//gameContext->eyeLength += gameContext->eyeLength / 10.0;
 			gameContext->setViewMatrix();
 		}
 	}
@@ -75,16 +79,37 @@ LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			POINT point;
 			GetCursorPos(&point);
-			gameContext->yaw += (point.x - gameContext->mMouseX) * 1.0 / 180.0;
-			gameContext->pitch += (point.y - gameContext->mMouseY) * 1.0 / 180.0;
+			gameContext->eyePos[0] -= point.x - gameContext->mMouseX;
 			gameContext->mMouseX = point.x;
 			gameContext->mMouseY = point.y;
-			
 			gameContext->setViewMatrix();
 			
 		} else if (gameContext->mCameraStatus == gameContext->CAMERA_PAN)
 		{
+			POINT point;
+			GetCursorPos(&point);
+			float dx = (float)point.x - gameContext->mMouseX;
+			float dy = (float)point.y - gameContext->mMouseY;
+			gameContext->mMouseX = point.x;
+			gameContext->mMouseY = point.y;
+
+			FbxVector4 dirVec(0, dy, 0, 0);
+			dirVec.Normalize();
+			gameContext->eyePos += dirVec;
+			gameContext->lookAt += dirVec;
 			
+			FbxVector4 eyeDir = gameContext->lookAt - gameContext->eyePos;
+			FbxVector4 eyeProDir(eyeDir[0], eyeDir[1] + 1.0, eyeDir[2], 0);
+			float xa = eyeDir[0], xb = eyeProDir[0], ya = eyeDir[1], yb = eyeProDir[1], za = eyeDir[2], zb = eyeProDir[2];
+			FbxVector4 dirXproDir(ya * zb - yb * za, za * xb - xa * zb, xa * yb - ya * xb, 0);
+			dirXproDir.Normalize();
+			if (dx * dirXproDir[0] > 0)
+			{
+				dirXproDir *= -1.0;
+			}
+			gameContext->eyePos += dirXproDir * abs(dx);
+			gameContext->lookAt += dirXproDir * abs(dx);
+			gameContext->setViewMatrix();
 		}
 	}
 		break;
@@ -161,7 +186,8 @@ void draw(GameContext *gameContext)
 	glViewport(0, 0, gameContext->mWidth, gameContext->mHeight);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(gameContext->mShaderProgram->programObject);
-	
+	glEnable(GL_DEPTH_TEST);
+
 	gameContext->mShaderProgram->modelLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "modelMatrix");
 	gameContext->mShaderProgram->viewLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "viewMatrix");
 	gameContext->mShaderProgram->proLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "proMatrix");
@@ -402,9 +428,11 @@ int main(int arc, char *argv[])
 		exit(1);
 	}
 	//FbxString fileName("F:\\resources\\farm-life\\Map_7.fbx");
+	//FbxString fileName("F:\\resources\\farm-life\\Props\\Lamp.fbx");
 	//FbxString fileName("F:\\resources\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
+	FbxString fileName("F:\\resources\\farm-life\\Buildings\\Stable.fbx");
 	//FbxString fileName("D:\\resource\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
-	FbxString fileName("D:\\resource\\farm-life\\Buildings\\Stable.fbx");
+	//FbxString fileName("D:\\resource\\farm-life\\Buildings\\Stable.fbx");
 	//FbxString fileName("D:\\resource\\farm-life\\Props\\Lamp.fbx");
 	//FbxString fileName("D:\\resource\\farm-life\\Characters\\Characters\\Static\\Farmer.fbx");
 	//FbxString fileName("D:\\resource\\farm-life\\Map_7.fbx");

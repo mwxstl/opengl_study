@@ -119,8 +119,7 @@ GameContext::GameContext(GLint pWidth, GLint pHeight)
 	eglNativeDisplay(NULL), eglNativeWindow(NULL),
 	eglDisplay(NULL), eglContext(NULL), eglSurface(NULL),
 	drawFunc(NULL), updateFunc(NULL), shutdownFunc(NULL), keyFunc(NULL),
-	mCurrentTheta(0), mMouseX(0), mMouseY(0), mCameraStatus(CAMERA_NOTHING),
-	pitch(0.0), yaw(0.0), eyeLength(600.0)
+	mMouseX(0), mMouseY(0), mCameraStatus(CAMERA_NOTHING)
 {
 	modelMatrix.SetIdentity();
 	viewMatrix.SetIdentity();
@@ -134,7 +133,7 @@ GameContext::GameContext(GLint pWidth, GLint pHeight)
 
 	ESMatrix projection;
 	esMatrixLoadIdentity(&projection);
-	esPerspective(&projection, 30.0f, mWidth / mHeight, 0.1f, 2000.0f);
+	esPerspective(&projection, 45.0f, mWidth / mHeight, 0.1f, 3000.0f);
 	
 	for (int i = 0; i < 4; i++)
 	{
@@ -178,6 +177,21 @@ void GameContext::setViewMatrix()
 	
 	viewMatrix.SetLookAtRH(eyePos, lookAt, upDir);
 	
+	FbxVector4 eyeDir = lookAt - eyePos;
+	float eyeLength = eyeDir[0] * eyeDir[0] + eyeDir[1] * eyeDir[1] + eyeDir[2] * eyeDir[2];
+	eyeLength = sqrt(eyeLength);
+	
+	ESMatrix projection;
+	esMatrixLoadIdentity(&projection);
+	esPerspective(&projection, 45.0f, mWidth / mHeight, 0.1f, eyeLength * 2.0);
+
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			proMatrix.Set(i, j, projection.m[i][j]);
+		}
+	}
 }
 
 bool GameContext::loadShaderProgram()
@@ -215,16 +229,9 @@ bool GameContext::loadShaderProgram()
 	}
 	mShaderProgram->programObject = programObject;
 
-	/*GLuint depthBuffer;
-	glGenBuffers(1, &depthBuffer);
-	glBindBuffer(GL_RENDERBUFFER_DEP)
-	*/
-	// Store the program object
-	//userData->programObject = programObject;
 
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
-	// enable depth test
 	return true;
 }
 

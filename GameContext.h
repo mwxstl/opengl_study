@@ -11,15 +11,13 @@ public:
 	~GameContext();
 	
 	GLint mWidth, mHeight;
-	float mCurrentTheta;
-	float pitch, yaw;
+	
 	float mMouseX, mMouseY;
 
 	FbxVector4 eyePos;
 	FbxVector4 lookAt;
 	FbxVector4 upDir;
 	
-	float eyeLength;
 	
 	ShaderProgram* mShaderProgram;
 	SceneContext* mSceneContext;
