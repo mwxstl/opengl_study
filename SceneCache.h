@@ -75,3 +75,50 @@ private:
 	ColorChannel mSpecular;
 	GLfloat mShininess;
 };
+
+struct PropertyChannel
+{
+	PropertyChannel() : mAnimCurve(NULL), mValue(0.0f) {}
+	GLfloat get(const FbxTime & pTime) const
+	{
+		if (mAnimCurve)
+		{
+			return mAnimCurve->Evaluate(pTime);
+		}
+		else
+		{
+			return mValue;
+		}
+	}
+	
+	FbxAnimCurve * mAnimCurve;
+	GLfloat mValue;
+};
+
+class LightCache
+{
+public:
+	LightCache();
+	~LightCache();
+
+	// set ambient light. turn on light0 and set its attributes
+	// to default (white directional light in z axis).
+	// if the scene contains at least one light, the attributes of
+	// light0 will be overridden.
+	static void initializeEnvironment(const FbxColor & pAmbientLight);
+
+	bool initialize(const FbxLight *pLight, FbxAnimLayer *pAnimLayer);
+
+	// draw a geometry (sphere for point and directional light,
+	// cone for spot spot light). and set light attributes.
+	void setLight(const FbxTime & pTime) const;
+private:
+	static int sLightCount;
+
+	GLuint mLightIndex;
+	FbxLight::EType mType;
+	PropertyChannel mColorRed;
+	PropertyChannel mColorGreen;
+	PropertyChannel mColorBlue;
+	PropertyChannel mConeAngle;
+};

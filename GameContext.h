@@ -11,8 +11,8 @@ public:
 	~GameContext();
 	
 	GLint mWidth, mHeight;
-	
 	float mMouseX, mMouseY;
+	float yaw, pitch;
 
 	FbxVector4 eyePos;
 	FbxVector4 lookAt;

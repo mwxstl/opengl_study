@@ -285,9 +285,8 @@ bool VBOMesh::initialize(const FbxMesh* mesh)
 
 	glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
 	glBufferData(GL_ARRAY_BUFFER, polygonVertexCount * VERTEX_STRIDE * sizeof(GLfloat), vertices, GL_STATIC_DRAW);
-
-	
 	delete[] vertices;
+	
 	if (mHasNormal)
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, mVBONames[NORMAL_VBO]);
@@ -313,18 +312,23 @@ void VBOMesh::beginDraw() const
 {
 	glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, VERTEX_STRIDE, GL_FLOAT, GL_FALSE, 0, 0);
 
+	
 	//todo normals
 	if (mHasNormal)
 	{
-
+		glBindBuffer(GL_ARRAY_BUFFER, mVBONames[NORMAL_VBO]);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, NORMAL_STRIDE, GL_FLOAT, GL_FALSE, 0, 0);
 	}
 
 	//todo uvs
 	if (mHasUV)
 	{
-
+		glBindBuffer(GL_ARRAY_BUFFER, mVBONames[UV_VBO]);
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, UV_STRIDE, GL_FLOAT, GL_FALSE, 0, 0);
 	}
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVBONames[INDEX_VBO]);
@@ -441,3 +445,87 @@ void MaterialCache::setDefaultMaterial(GLint location)
 
 	glUniform4fv(location, 1, mmm);
 }
+
+int LightCache::sLightCount = 0;
+
+LightCache::LightCache() :mType(FbxLight::ePoint)
+{
+	//todo GL_LIGHT0 + sLightCount++;
+	mLightIndex = sLightCount++;
+}
+
+LightCache::~LightCache()
+{
+	glDisable(mLightIndex);
+	--sLightCount;
+}
+
+bool LightCache::initialize(const FbxLight* pLight, FbxAnimLayer* pAnimLayer)
+{
+	mType = pLight->LightType.Get();
+
+	FbxPropertyT<FbxDouble3> colorProperty = pLight->Color;
+	FbxDouble3 lightColor = colorProperty.Get();
+	mColorRed.mValue = static_cast<GLfloat>(lightColor[0]);
+	mColorGreen.mValue = static_cast<GLfloat>(lightColor[1]);
+	mColorBlue.mValue = static_cast<GLfloat>(lightColor[2]);
+
+	if (pAnimLayer)
+	{
+		mColorRed.mAnimCurve = colorProperty.GetCurve(pAnimLayer, FBXSDK_CURVENODE_COLOR_RED);
+		mColorGreen.mAnimCurve = colorProperty.GetCurve(pAnimLayer, FBXSDK_CURVENODE_COLOR_GREEN);
+		mColorBlue.mAnimCurve = colorProperty.GetCurve(pAnimLayer, FBXSDK_CURVENODE_COLOR_BLUE);
+	}
+
+	if (mType == FbxLight::eSpot)
+	{
+		FbxPropertyT<FbxDouble> coneAngleProperty = pLight->InnerAngle;
+		mConeAngle.mValue = static_cast<GLfloat>(coneAngleProperty.Get());
+		if (pAnimLayer)
+		{
+			mConeAngle.mAnimCurve = coneAngleProperty.GetCurve(pAnimLayer);
+		}
+	}
+	
+	return true;
+}
+
+void LightCache::setLight(const FbxTime& pTime) const
+{
+	const GLfloat lightColor[4] = { mColorRed.get(pTime), mColorGreen.get(pTime), mColorBlue.get(pTime), 1.0 };
+	const GLfloat coneAngle = mConeAngle.get(pTime);
+
+	// todo 
+	// glcolor3fv(lightColor);
+
+	// visible for double side.
+	glDisable(GL_CULL_FACE);
+	// draw wire-frame geometry
+	glCullFace(GL_FRONT_AND_BACK);
+
+	if (mType == FbxLight::eSpot)
+	{
+		// todo draw a cone for spot light;
+	} else
+	{
+		// todo draw a sphere for other types.
+		
+	}
+
+	// the transform have been set, so set in local coordinate
+	if (mType == FbxLight::eDirectional)
+	{
+		// todo set default direction light position
+	} else
+	{
+		// todo set default light position
+	}
+
+	// todo set 
+}
+
+void LightCache::initializeEnvironment(const FbxColor& pAmbientLight)
+{
+	
+}
+

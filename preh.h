@@ -18,5 +18,5 @@
 /// esCreateWindow flat - multi-sample buffer
 #define ES_WINDOW_MULTISAMPLE   8
 
-
+#define PI 3.14159265359
 using namespace std;

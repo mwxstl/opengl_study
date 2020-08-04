@@ -36,12 +36,23 @@ public:
 	
 private:
 	void displayGrid();
-	void loadCacheRecursive(FbxScene* pScene);
-	void loadCacheRecursive(FbxNode * pNode);
+	void displayTestLight();
+	void loadTestLight();
+	bool loadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject);
+	void loadCacheRecursive(FbxScene *pScene, FbxAnimLayer *pAnimLayer);
+	void loadCacheRecursive(FbxNode *pNode, FbxAnimLayer *pAnimLayer);
+
 	const char *mFileName;
 	mutable SceneStatus mSceneStatus;
 
+	GLuint testLightVBO;
+	GLuint testLightIndiceVBO;
+	
 	FbxManager *mManager;
 	FbxScene *mScene;
 	FbxImporter *mImporter;
+	FbxAnimLayer *mCurrentAnimLayer;
+
+	FbxTime mFrameTime, mStart, mStop, mCurrentTime;
+	FbxTime mCacheStart, mCacheStop;
 };

@@ -119,7 +119,8 @@ GameContext::GameContext(GLint pWidth, GLint pHeight)
 	eglNativeDisplay(NULL), eglNativeWindow(NULL),
 	eglDisplay(NULL), eglContext(NULL), eglSurface(NULL),
 	drawFunc(NULL), updateFunc(NULL), shutdownFunc(NULL), keyFunc(NULL),
-	mMouseX(0), mMouseY(0), mCameraStatus(CAMERA_NOTHING)
+	mMouseX(0), mMouseY(0), mCameraStatus(CAMERA_NOTHING),
+	yaw(PI * 3.0 / 2.0), pitch(0.0)
 {
 	modelMatrix.SetIdentity();
 	viewMatrix.SetIdentity();
@@ -183,7 +184,7 @@ void GameContext::setViewMatrix()
 	
 	ESMatrix projection;
 	esMatrixLoadIdentity(&projection);
-	esPerspective(&projection, 45.0f, mWidth / mHeight, 0.1f, eyeLength * 2.0);
+	esPerspective(&projection, 60.0f, mWidth / mHeight, 0.1f, eyeLength > 100.0 ? eyeLength * 2.0 : 200.0);
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -198,28 +199,35 @@ bool GameContext::loadShaderProgram()
 {
 	mShaderProgram = new ShaderProgram();
 	char vShaderStr[] =
-		"#version 300 es							\n"
-		"uniform mat4 proMatrix;					\n"
-		"uniform mat4 modelMatrix;					\n"
-		"uniform mat4 viewMatrix;					\n"
-		"uniform vec4 a_color;						\n"
-		"layout(location = 0) in vec4 v_position;	\n"
-		"out vec4 v_color;							\n"
-		"void main()								\n"
-		"{											\n"
+		"#version 300 es														\n"
+		"uniform mat4 proMatrix;												\n"
+		"uniform mat4 modelMatrix;												\n"
+		"uniform mat4 viewMatrix;												\n"
+		"uniform vec4 a_color;													\n"
+		"layout(location = 0) in vec4 v_position;								\n"
+		"layout(location = 1) in vec2 v_text_cord;								\n"
+		"layout(location = 2) in vec3 v_normal;									\n"
+		"out vec4 v_color;														\n"
+		"out vec2 text_cord;													\n"
+		"void main()															\n"
+		"{																		\n"
 		"   gl_Position = proMatrix * viewMatrix * modelMatrix * v_position;	\n"
-		"	v_color = a_color;						\n"
-		"}											\n";
+		"	v_color = a_color;													\n"
+		"	text_cord = v_text_cord;											\n"
+		"}																		\n";
 
 	char fShaderStr[] =
-		"#version 300 es                            \n"
-		"precision mediump float;                   \n"
-		"in vec4 v_color;							\n"
-		"out vec4 fragColor;                        \n"
-		"void main()                                \n"
-		"{                                          \n"
-		"   fragColor = v_color;					\n"
-		"}											\n";
+		"#version 300 es														\n"
+		"precision mediump float;												\n"
+		"in vec4 v_color;														\n"
+		"in vec2 text_cord;														\n"
+		"out vec4 fragColor;													\n"
+		"uniform sampler2D our_texture;											\n"
+		"void main()															\n"
+		"{																		\n"
+		//"   fragColor = texture(ourTexture, text_cord) * v_color;				\n"
+		"   fragColor = v_color;				\n"
+		"}																		\n";
 	GLuint programObject;
 	// Create the program object
 	programObject = loadProgram(vShaderStr, fShaderStr);
@@ -240,12 +248,16 @@ bool GameContext::loadScene(FbxString pFileName)
 	try
 	{
 		mSceneContext = new SceneContext(pFileName);
-
 	}
 	catch (std::bad_alloc)
 	{
 		cout << "unable to load scene!\n";
 		return false;
 	}
-	return mSceneContext->loadFile();
+
+	if (mSceneContext->getSceneStatus() == SceneContext::MUST_BE_LOADED)
+	{
+		return mSceneContext->loadFile();
+	}
+	return false;
 }

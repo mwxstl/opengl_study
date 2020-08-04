@@ -79,9 +79,52 @@ LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			POINT point;
 			GetCursorPos(&point);
-			gameContext->eyePos[0] -= point.x - gameContext->mMouseX;
+			
+			float dx = (float)point.x - gameContext->mMouseX;
+			float dy = (float)point.y - gameContext->mMouseY;
 			gameContext->mMouseX = point.x;
 			gameContext->mMouseY = point.y;
+
+			gameContext->yaw += dx / (float) gameContext->mWidth * PI * 2;
+			if (gameContext->yaw >= 2.0 * PI)
+			{
+				gameContext->yaw -= 2.0 * PI;
+			}
+			if (gameContext->yaw <= -2.0 * PI)
+			{
+				gameContext->yaw += 2.0 * PI;
+			}
+			gameContext->pitch -= dy / (float) gameContext->mHeight * PI * 2;
+			if (gameContext->pitch >= PI / 2.0)
+			{
+				gameContext->pitch = PI * 89.5 / 180.0;
+			}
+			if (gameContext->pitch <= -PI / 2.0)
+			{
+				gameContext->pitch = -PI * 89.5 / 180.0;
+			}
+			float eX = gameContext->lookAt[0] - gameContext->eyePos[0], eY = gameContext->lookAt[1] - gameContext->eyePos[1], eZ = gameContext->lookAt[2] - gameContext->eyePos[2];
+			float eyeLen = sqrt(eX * eX + eY * eY + eZ * eZ);
+			FbxVector4 eyeDir(eyeLen * cos(gameContext->pitch) * cos(gameContext->yaw), eyeLen * sin(gameContext->pitch), eyeLen * cos(gameContext->pitch) * sin(gameContext->yaw));
+			gameContext->eyePos.Set(gameContext->lookAt[0] - eyeDir[0], gameContext->lookAt[1] - eyeDir[1], gameContext->lookAt[2] - eyeDir[2], 1);
+
+			eX = gameContext->lookAt[0] - gameContext->eyePos[0];
+			eY = gameContext->lookAt[1] - gameContext->eyePos[1];
+			eZ = gameContext->lookAt[2] - gameContext->eyePos[2];
+			if (eY == 0.0)
+			{
+				gameContext->upDir.Set(0, 1, 0, 0);
+			}
+			else if (eY > 0)
+			{
+				gameContext->upDir.Set(-eX, (eX * eX + eZ * eZ) / eY, -eZ, 0);
+			} else
+			{
+				gameContext->upDir.Set(eX, -(eX * eX + eZ * eZ) / eY, eZ, 0);
+			}
+
+			gameContext->upDir.Normalize();
+			
 			gameContext->setViewMatrix();
 			
 		} else if (gameContext->mCameraStatus == gameContext->CAMERA_PAN)
@@ -93,22 +136,19 @@ LRESULT WINAPI windowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			gameContext->mMouseX = point.x;
 			gameContext->mMouseY = point.y;
 
-			FbxVector4 dirVec(0, dy, 0, 0);
-			dirVec.Normalize();
-			gameContext->eyePos += dirVec;
-			gameContext->lookAt += dirVec;
+			FbxVector4 yDir(gameContext->upDir[0], gameContext->upDir[1], gameContext->upDir[2], 0);
+			yDir.Normalize();
+			gameContext->eyePos += yDir * dy;
+			gameContext->lookAt += yDir * dy;
 			
 			FbxVector4 eyeDir = gameContext->lookAt - gameContext->eyePos;
-			FbxVector4 eyeProDir(eyeDir[0], eyeDir[1] + 1.0, eyeDir[2], 0);
-			float xa = eyeDir[0], xb = eyeProDir[0], ya = eyeDir[1], yb = eyeProDir[1], za = eyeDir[2], zb = eyeProDir[2];
-			FbxVector4 dirXproDir(ya * zb - yb * za, za * xb - xa * zb, xa * yb - ya * xb, 0);
-			dirXproDir.Normalize();
-			if (dx * dirXproDir[0] > 0)
-			{
-				dirXproDir *= -1.0;
-			}
-			gameContext->eyePos += dirXproDir * abs(dx);
-			gameContext->lookAt += dirXproDir * abs(dx);
+			/*FbxVector4 eyeProDir(eyeDir[0], eyeDir[1] + 1.0, eyeDir[2], 0);*/
+			float xa = eyeDir[0], xb = gameContext->upDir[0], ya = eyeDir[1], yb = gameContext->upDir[1], za = eyeDir[2], zb = gameContext->upDir[2];
+			FbxVector4 xzDir(ya * zb - yb * za, za * xb - xa * zb, xa * yb - ya * xb, 0);
+			xzDir.Normalize();
+			gameContext->eyePos -= xzDir * dx;
+			gameContext->lookAt -= xzDir * dx;
+			
 			gameContext->setViewMatrix();
 		}
 	}
@@ -427,15 +467,7 @@ int main(int arc, char *argv[])
 	{
 		exit(1);
 	}
-	//FbxString fileName("F:\\resources\\farm-life\\Map_7.fbx");
-	//FbxString fileName("F:\\resources\\farm-life\\Props\\Lamp.fbx");
-	//FbxString fileName("F:\\resources\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
-	FbxString fileName("F:\\resources\\farm-life\\Buildings\\Stable.fbx");
-	//FbxString fileName("D:\\resource\\farm-life\\Animals\\Animals\\Animated\\MediumPigAnimations.fbx");
-	//FbxString fileName("D:\\resource\\farm-life\\Buildings\\Stable.fbx");
-	//FbxString fileName("D:\\resource\\farm-life\\Props\\Lamp.fbx");
-	//FbxString fileName("D:\\resource\\farm-life\\Characters\\Characters\\Static\\Farmer.fbx");
-	//FbxString fileName("D:\\resource\\farm-life\\Map_7.fbx");
+	const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
 	if (!gameContext.loadScene(fileName))
 	{
 		exit(1);
