@@ -4,7 +4,7 @@
 
 const char * GAME_NAME = "MiniGame";
 const int DEFAULT_WINDOW_WIDTH = 960;
-const int DEFAULT_WINDOW_HEIGHT = 720;
+const int DEFAULT_WINDOW_HEIGHT = 960;
 
 ///
 //  ESWindowProc()
@@ -223,14 +223,7 @@ void update(GameContext *gameContext, float deltaTime)
 
 void draw(GameContext *gameContext)
 {
-	glViewport(0, 0, gameContext->mWidth, gameContext->mHeight);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glUseProgram(gameContext->mShaderProgram->programObject);
-	glEnable(GL_DEPTH_TEST);
-
-	gameContext->mShaderProgram->modelLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "modelMatrix");
-	gameContext->mShaderProgram->viewLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "viewMatrix");
-	gameContext->mShaderProgram->proLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "proMatrix");
+	
 
 	gameContext->mSceneContext->onDisplay(gameContext);
 }
@@ -379,8 +372,10 @@ bool createWindow(GameContext *gameContext, const char *gameName, GLint width, G
 		cout << "error: winCreate failed!" << endl;
 		return false;
 	}
-	
+
+
 	gameContext->eglDisplay = eglGetDisplay(gameContext->eglNativeDisplay);
+
 	if (gameContext->eglDisplay == EGL_NO_DISPLAY)
 	{
 		cout << "error: EGL_NO_DISPLAY" << endl;
@@ -418,6 +413,7 @@ bool createWindow(GameContext *gameContext, const char *gameName, GLint width, G
 			return false;
 		}
 
+		
 		if (numConfigs < 1)
 		{
 			cout << "eglChooseConfig failed!\n";
@@ -459,7 +455,7 @@ int main(int arc, char *argv[])
 {
 	GameContext gameContext(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
-	if (!createWindow(&gameContext, GAME_NAME, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, ES_WINDOW_RGB | ES_WINDOW_DEPTH))
+	if (!createWindow(&gameContext, GAME_NAME, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, ES_WINDOW_RGB | ES_WINDOW_DEPTH | ES_WINDOW_STENCIL ))
 	{
 		exit(1);
 	}
@@ -467,7 +463,9 @@ int main(int arc, char *argv[])
 	{
 		exit(1);
 	}
-	const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	//const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
 	if (!gameContext.loadScene(fileName))
 	{
 		exit(1);

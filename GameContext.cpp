@@ -115,7 +115,7 @@ GLuint loadProgram(const char *vertShaderSrc, const char *fragShaderSrc)
 }
 GameContext::GameContext(GLint pWidth, GLint pHeight)
 	:mWidth(pWidth), mHeight(pHeight),
-	mShaderProgram(NULL), mSceneContext(NULL),
+	mShaderProgram(NULL), mLightShaderProgram(NULL), mSceneContext(NULL),
 	eglNativeDisplay(NULL), eglNativeWindow(NULL),
 	eglDisplay(NULL), eglContext(NULL), eglSurface(NULL),
 	drawFunc(NULL), updateFunc(NULL), shutdownFunc(NULL), keyFunc(NULL),
@@ -198,25 +198,48 @@ void GameContext::setViewMatrix()
 bool GameContext::loadShaderProgram()
 {
 	mShaderProgram = new ShaderProgram();
+	mLightShaderProgram = new ShaderProgram();
 	char vShaderStr[] =
 		"#version 300 es														\n"
 		"uniform mat4 proMatrix;												\n"
 		"uniform mat4 modelMatrix;												\n"
 		"uniform mat4 viewMatrix;												\n"
 		"uniform vec4 a_color;													\n"
+		"uniform vec4 light_color;												\n"
 		"layout(location = 0) in vec4 v_position;								\n"
 		"layout(location = 1) in vec2 v_text_cord;								\n"
 		"layout(location = 2) in vec3 v_normal;									\n"
 		"out vec4 v_color;														\n"
 		"out vec2 text_cord;													\n"
+		"out vec4 l_color;														\n"
+		"out vec3 normal;														\n"
 		"void main()															\n"
 		"{																		\n"
 		"   gl_Position = proMatrix * viewMatrix * modelMatrix * v_position;	\n"
 		"	v_color = a_color;													\n"
 		"	text_cord = v_text_cord;											\n"
+		"	l_color = light_color;												\n"
+		"	normal = v_normal;													\n"	
 		"}																		\n";
 
 	char fShaderStr[] =
+		"#version 300 es														\n"
+		"precision mediump float;												\n"
+		"in vec4 v_color;														\n"
+		"in vec2 text_cord;														\n"
+		"in vec4 l_color;														\n"
+		"in vec3 normal;														\n"		
+		"out vec4 fragColor;													\n"
+		"uniform sampler2D our_texture;											\n"
+		"void main()															\n"
+		"{																		\n"
+		//"   fragColor = texture(ourTexture, text_cord) * v_color;				\n"
+		"	float ambientStrength = 0.2;										\n"
+		"	vec4 ambient = ambientStrength * l_color;							\n"
+		"   fragColor = ambient * v_color;										\n"
+		"}																		\n";
+
+	char fLightShaderStr[] =
 		"#version 300 es														\n"
 		"precision mediump float;												\n"
 		"in vec4 v_color;														\n"
@@ -226,16 +249,18 @@ bool GameContext::loadShaderProgram()
 		"void main()															\n"
 		"{																		\n"
 		//"   fragColor = texture(ourTexture, text_cord) * v_color;				\n"
-		"   fragColor = v_color;				\n"
+		"   fragColor = vec4(1.0, 0.0, 0.0, 1.0);				\n"
 		"}																		\n";
-	GLuint programObject;
+	GLuint programObject, lightProgramObject;
 	// Create the program object
 	programObject = loadProgram(vShaderStr, fShaderStr);
+	lightProgramObject = loadProgram(vShaderStr, fLightShaderStr);
 	if (programObject == 0)
 	{
 		return false;
 	}
 	mShaderProgram->programObject = programObject;
+	mLightShaderProgram->programObject = lightProgramObject;
 
 
 	glEnable(GL_DEPTH_TEST);

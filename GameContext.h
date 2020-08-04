@@ -20,6 +20,7 @@ public:
 	
 	
 	ShaderProgram* mShaderProgram;
+	ShaderProgram* mLightShaderProgram;
 	SceneContext* mSceneContext;
 
 	EGLNativeDisplayType eglNativeDisplay;

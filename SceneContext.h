@@ -35,8 +35,8 @@ public:
 
 	
 private:
-	void displayGrid();
-	void displayTestLight();
+	void displayGrid(GameContext *gameContext);
+	void displayTestLight(GameContext *gameContext);
 	void loadTestLight();
 	bool loadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject);
 	void loadCacheRecursive(FbxScene *pScene, FbxAnimLayer *pAnimLayer);

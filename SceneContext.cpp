@@ -375,8 +375,29 @@ void drawNodeRecursive(FbxNode *pNode, GameContext *gameContext)
 bool SceneContext::onDisplay(GameContext* gameContext)
 {
 	FbxNode *rootNode = mScene->GetRootNode();
-	displayGrid();
-	displayTestLight();
+
+	glViewport(0, 0, gameContext->mWidth, gameContext->mHeight);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	
+	glUseProgram(gameContext->mLightShaderProgram->programObject);
+	gameContext->mLightShaderProgram->modelLoc = glGetUniformLocation(gameContext->mLightShaderProgram->programObject, "modelMatrix");
+	gameContext->mLightShaderProgram->viewLoc = glGetUniformLocation(gameContext->mLightShaderProgram->programObject, "viewMatrix");
+	gameContext->mLightShaderProgram->proLoc = glGetUniformLocation(gameContext->mLightShaderProgram->programObject, "proMatrix");
+	
+	displayGrid(gameContext);
+	displayTestLight(gameContext);
+	
+	glUseProgram(gameContext->mShaderProgram->programObject);
+	gameContext->mShaderProgram->modelLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "modelMatrix");
+	gameContext->mShaderProgram->viewLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "viewMatrix");
+	gameContext->mShaderProgram->proLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "proMatrix");
+
+	GLfloat light_color[] = { 1.0, 1.0, 1.0, 1.0 };
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_color"),1,  light_color);
 	drawNodeRecursive(rootNode, gameContext);
 	return true;
 }
@@ -384,14 +405,14 @@ bool SceneContext::onDisplay(GameContext* gameContext)
 void SceneContext::loadTestLight()
 {
 	GLfloat vertices[] = {
-		-1, 19, 1, 1,
-		1, 19, 1, 1,
-		1, 21, 1, 1,
-		-1, 21, 1, 1,
-		-1, 19, -1, 1,
-		1, 19, -1, 1,
-		1, 21, -1, 1,
-		-1, 21, -1, 1
+		-2, 198, 2, 1,
+		2, 198, 2, 1,
+		2, 202, 2, 1,
+		-2, 202, 2, 1,
+		-2, 198, -2, 1,
+		2, 198, -2, 1,
+		2, 202, -2, 1,
+		-2, 202, -2, 1
 	};
 	GLuint indices[] = {
 		0, 1, 2, 0, 2, 3,
@@ -410,22 +431,22 @@ void SceneContext::loadTestLight()
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * 6 * sizeof(GLuint), indices, GL_STATIC_DRAW);
 }
 
-void SceneContext::displayGrid()
+void SceneContext::displayGrid(GameContext *gameContext)
 {
 	
 }
 
-GLfloat *getMatrix(FbxMatrix mat)
-{
-	GLfloat *ret = new GLfloat[16];
-	double *tmp = (double *)mat;
-	for (int i = 0; i < 16; i++)
-	{
-		ret[i] = tmp[i];
-	}
-	return ret;
-}
-
+//GLfloat *getMatrix(FbxMatrix mat)
+//{
+//	GLfloat *ret = new GLfloat[16];
+//	double *tmp = (double *)mat;
+//	for (int i = 0; i < 16; i++)
+//	{
+//		ret[i] = tmp[i];
+//	}
+//	return ret;
+//}
+GLfloat *getMatrix(FbxMatrix mat);
 void SceneContext::displayTestLight(GameContext *gameContext)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, testLightVBO);
@@ -434,20 +455,26 @@ void SceneContext::displayTestLight(GameContext *gameContext)
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, testLightIndiceVBO);
 
+	FbxMatrix globalTransform;
+	globalTransform.SetIdentity();
 	GLfloat* model = getMatrix(globalTransform);
-	glUniformMatrix4fv((gameContext->mShaderProgram)->modelLoc, 1, GL_FALSE, model);
+	glUniformMatrix4fv((gameContext->mLightShaderProgram)->modelLoc, 1, GL_FALSE, model);
 
 	GLfloat *view = getMatrix(gameContext->viewMatrix);
-	glUniformMatrix4fv((gameContext->mShaderProgram)->viewLoc, 1, GL_FALSE, view);
+	glUniformMatrix4fv((gameContext->mLightShaderProgram)->viewLoc, 1, GL_FALSE, view);
 
 	GLfloat *projection = getMatrix(gameContext->proMatrix);
-	glUniformMatrix4fv((gameContext->mShaderProgram)->proLoc, 1, GL_FALSE, projection);
+	glUniformMatrix4fv((gameContext->mLightShaderProgram)->proLoc, 1, GL_FALSE, projection);
 
+	GLint loc = glGetUniformLocation(gameContext->mLightShaderProgram->programObject, "a_color");
+	GLfloat lightColor[] = { 1.0, 1.0, 1.0, 1.0 };
+	glUniform4fv(loc, 1, lightColor);
+	
 	delete[] model;
 	delete[] view;
 	delete[] projection;
-	GLsizei offset = mSubMeshes[materialIndex]->IndexOffset * sizeof(GLuint);
-	const GLsizei elementCount = mSubMeshes[materialIndex]->TriangleCount * 3;
-	glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, reinterpret_cast<const GLvoid *>(offset));
+	
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+	
 }
 
