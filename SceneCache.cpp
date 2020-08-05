@@ -29,7 +29,7 @@ namespace
 			{
 				result[0] *= factor;
 				result[1] *= factor;
-				result[1] *= factor;
+				result[2] *= factor;
 			}
 		}
 
@@ -396,13 +396,34 @@ MaterialCache::~MaterialCache()
 
 }
 
+void MaterialCache::print()
+{
+	cout << endl << "========================================" << endl;
+	cout << "emissive: " << mEmissive.mColor[0] << " " << mEmissive.mColor[1] << " " << mEmissive.mColor[2] << endl;
+	cout << "ambient: " << mAmbient.mColor[0] << " " << mAmbient.mColor[1] << " " << mAmbient.mColor[2] << endl;
+	cout << "diffuse: " << mDiffuse.mColor[0] << " " << mDiffuse.mColor[1] << " " << mDiffuse.mColor[2] << endl;
+	cout << "specular: " << mSpecular.mColor[0] << " " << mSpecular.mColor[1] << " " << mSpecular.mColor[2] << endl;
+}
+
 bool MaterialCache::initialize(const FbxSurfaceMaterial* pMaterial)
 {
 	const FbxDouble3 emissive = getMaterialProperty(pMaterial,
 		FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, mEmissive.mTextureName);
-	mEmissive.mColor[0] = static_cast<GLfloat>(emissive[0]);
-	mEmissive.mColor[1] = static_cast<GLfloat>(emissive[1]);
-	mEmissive.mColor[2] = static_cast<GLfloat>(emissive[2]);
+	if (emissive[0] == 0.0 && emissive[1] == 0.0 && emissive[2] == 0.0)
+	{
+		FbxSurfaceLambert *material = (FbxSurfaceLambert *)pMaterial;
+		FbxDouble3 emissive2 = material->Emissive.Get();
+		//FbxDouble emissiveFactor = material->EmissiveFactor.Get();
+		//GLfloat factor = static_cast<GLfloat>(emissiveFactor);
+		mEmissive.mColor[0] = static_cast<GLfloat>(emissive2[0]);
+		mEmissive.mColor[1] = static_cast<GLfloat>(emissive2[1]);
+		mEmissive.mColor[2] = static_cast<GLfloat>(emissive2[2]);
+	} else
+	{
+		mEmissive.mColor[0] = static_cast<GLfloat>(emissive[0]);
+		mEmissive.mColor[1] = static_cast<GLfloat>(emissive[1]);
+		mEmissive.mColor[2] = static_cast<GLfloat>(emissive[2]);
+	}
 
 	const FbxDouble3 ambient = getMaterialProperty(pMaterial,
 		FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, mAmbient.mTextureName);
@@ -422,28 +443,40 @@ bool MaterialCache::initialize(const FbxSurfaceMaterial* pMaterial)
 	mSpecular.mColor[1] = static_cast<GLfloat>(specular[1]);
 	mSpecular.mColor[2] = static_cast<GLfloat>(specular[2]);
 
-	FbxProperty shininessProperty = pMaterial->FindProperty(FbxSurfaceMaterial::sShininess);
-	if (shininessProperty.IsValid())
+	FbxProperty lShininessProperty = pMaterial->FindProperty(FbxSurfaceMaterial::sShininess);
+	if (lShininessProperty.IsValid())
 	{
-		double shininess = shininessProperty.Get<FbxDouble>();
-		mShininess = static_cast<GLfloat>(shininess);
+		double lShininess = lShininessProperty.Get<FbxDouble>();
+		mShininess = static_cast<GLfloat>(lShininess);
 	}
+	else
+	{
+		mShininess = 32.0;
+	}
+
+	print();
 
 	return true;
 }
 
-void MaterialCache::setCurrentMaterial(GLint location) const
+void MaterialCache::setCurrentMaterial(GameContext *gameContext) const
 {
-	//todo
-	glUniform4fv(location, 1, mDiffuse.mColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.emissive"), 1, mEmissive.mColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.ambient"), 1, mAmbient.mColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.diffuse"), 1, mDiffuse.mColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.specular"), 1, mSpecular.mColor);
+	
+	glUniform1f(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.shininess"), mShininess);
 }
 
-void MaterialCache::setDefaultMaterial(GLint location)
+void MaterialCache::setDefaultMaterial(GameContext *gameContext)
 {
 	//todo
-	GLfloat mmm[4] = { rand() % 10 / 10.0f, rand() % 10 / 10.0f, rand() % 10 / 10.0f, 1.0f };
-
-	glUniform4fv(location, 1, mmm);
+	GLfloat defalutColor[4] = { 1.0, 1.0, 1.0, 1.0};
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.emissive"), 1, defalutColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.ambient"), 1, defalutColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.diffuse"), 1, defalutColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "material.specular"), 1, defalutColor);
 }
 
 int LightCache::sLightCount = 0;
@@ -501,7 +534,7 @@ void LightCache::setLight(const FbxTime& pTime) const
 	// visible for double side.
 	glDisable(GL_CULL_FACE);
 	// draw wire-frame geometry
-	glCullFace(GL_FRONT_AND_BACK);
+	glCullFace(GL_BACK);
 
 	if (mType == FbxLight::eSpot)
 	{

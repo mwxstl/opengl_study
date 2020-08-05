@@ -17,7 +17,9 @@ public:
 	FbxVector4 eyePos;
 	FbxVector4 lookAt;
 	FbxVector4 upDir;
-	
+	GLfloat *lightPosition;
+	GLfloat *lightColor;
+	GLfloat lightSize;
 	
 	ShaderProgram* mShaderProgram;
 	ShaderProgram* mLightShaderProgram;

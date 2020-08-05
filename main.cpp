@@ -223,8 +223,6 @@ void update(GameContext *gameContext, float deltaTime)
 
 void draw(GameContext *gameContext)
 {
-	
-
 	gameContext->mSceneContext->onDisplay(gameContext);
 }
 
@@ -455,7 +453,7 @@ int main(int arc, char *argv[])
 {
 	GameContext gameContext(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
-	if (!createWindow(&gameContext, GAME_NAME, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, ES_WINDOW_RGB | ES_WINDOW_DEPTH | ES_WINDOW_STENCIL ))
+	if (!createWindow(&gameContext, GAME_NAME, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, ES_WINDOW_RGB | ES_WINDOW_DEPTH |  ES_WINDOW_MULTISAMPLE))
 	{
 		exit(1);
 	}
@@ -463,8 +461,10 @@ int main(int arc, char *argv[])
 	{
 		exit(1);
 	}
-	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
-	const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
+	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\crops\\Apple.fbx");
+	//const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
 	//const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
 	if (!gameContext.loadScene(fileName))
 	{

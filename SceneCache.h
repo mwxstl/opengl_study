@@ -51,11 +51,13 @@ public:
 
 	bool initialize(const FbxSurfaceMaterial *pMaterial);
 
-	void setCurrentMaterial(GLint location) const;
+	void setCurrentMaterial(GameContext *gameContext) const;
 
 	bool hasTexture() const { return mDiffuse.mTextureName != 0; }
 
-	static void setDefaultMaterial(GLint location);
+	static void setDefaultMaterial(GameContext *gameContext);
+
+	void print();
 private:
 	struct ColorChannel
 	{

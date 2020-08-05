@@ -56,7 +56,7 @@ SceneContext::~SceneContext()
 	
 }
 
-bool SceneContext::loadFile()
+bool SceneContext::loadFile(GameContext *gameContext)
 {
 	if (mSceneStatus == MUST_BE_LOADED)
 	{
@@ -138,7 +138,7 @@ bool SceneContext::loadFile()
 			cout << "Scene integrity verification failed!" << endl;
 			return false;
 		}
-		loadCacheRecursive(mScene, mCurrentAnimLayer);
+		loadCacheRecursive(mScene, mCurrentAnimLayer, gameContext);
 		return true;
 	}
 	else
@@ -148,9 +148,9 @@ bool SceneContext::loadFile()
 }
 
 
-void SceneContext::loadCacheRecursive(FbxScene* pScene, FbxAnimLayer *pAnimLayer)
+void SceneContext::loadCacheRecursive(FbxScene* pScene, FbxAnimLayer *pAnimLayer, GameContext *gameContext)
 {
-	loadTestLight();
+	loadTestLight(gameContext);
 	
 	//load the textures into gpu, only for file texture now
 	const int count = pScene->GetTextureCount();
@@ -327,11 +327,11 @@ void drawMesh(FbxNode *pNode, GameContext *gameContext)
 
 				if (materialCache)
 				{
-					materialCache->setCurrentMaterial(loc);
+					materialCache->setCurrentMaterial(gameContext);
 				}
 				else
 				{
-					materialCache->setDefaultMaterial(loc);
+					materialCache->setDefaultMaterial(gameContext);
 				}
 			}
 			
@@ -396,23 +396,33 @@ bool SceneContext::onDisplay(GameContext* gameContext)
 	gameContext->mShaderProgram->viewLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "viewMatrix");
 	gameContext->mShaderProgram->proLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "proMatrix");
 
-	GLfloat light_color[] = { 1.0, 1.0, 1.0, 1.0 };
-	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_color"),1,  light_color);
+	GLfloat eyePosition[] = {gameContext->eyePos[0], gameContext->eyePos[1], gameContext->eyePos[2]};
+	glUniform3fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "view_position"), 1, eyePosition);
+
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_color"), 1, gameContext->lightColor);
+	
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_position"), 1, gameContext->lightPosition);
+	
 	drawNodeRecursive(rootNode, gameContext);
 	return true;
 }
 
-void SceneContext::loadTestLight()
+void SceneContext::loadTestLight(GameContext *gameContext)
 {
+	gameContext->lightPosition = new GLfloat[4]{ 200.0, 200.0, 200.0, 1.0 };
+	gameContext->lightColor = new GLfloat[4]{ 1.0, 1.0, 1.0, 1.0 };
+	gameContext->lightSize = 1.0;
+	GLfloat lightSize = 1.0;
+	GLfloat lightColor[] = { 1.0, 1.0, 1.0, 1.0 };
 	GLfloat vertices[] = {
-		-2, 198, 2, 1,
-		2, 198, 2, 1,
-		2, 202, 2, 1,
-		-2, 202, 2, 1,
-		-2, 198, -2, 1,
-		2, 198, -2, 1,
-		2, 202, -2, 1,
-		-2, 202, -2, 1
+		gameContext->lightPosition[0] - gameContext->lightSize, gameContext->lightPosition[1] - gameContext->lightSize, gameContext->lightPosition[2] + gameContext->lightSize, 1,
+		gameContext->lightPosition[0] + gameContext->lightSize, gameContext->lightPosition[1] - gameContext->lightSize, gameContext->lightPosition[2] + gameContext->lightSize, 1,
+		gameContext->lightPosition[0] + gameContext->lightSize, gameContext->lightPosition[1] + gameContext->lightSize, gameContext->lightPosition[2] + gameContext->lightSize, 1,
+		gameContext->lightPosition[0] - gameContext->lightSize, gameContext->lightPosition[1] + gameContext->lightSize, gameContext->lightPosition[2] + gameContext->lightSize, 1,
+		gameContext->lightPosition[0] - gameContext->lightSize, gameContext->lightPosition[1] - gameContext->lightSize, gameContext->lightPosition[2] - gameContext->lightSize, 1,
+		gameContext->lightPosition[0] + gameContext->lightSize, gameContext->lightPosition[1] - gameContext->lightSize, gameContext->lightPosition[2] - gameContext->lightSize, 1,
+		gameContext->lightPosition[0] + gameContext->lightSize, gameContext->lightPosition[1] + gameContext->lightSize, gameContext->lightPosition[2] - gameContext->lightSize, 1,
+		gameContext->lightPosition[0] - gameContext->lightSize, gameContext->lightPosition[1] + gameContext->lightSize, gameContext->lightPosition[2] - gameContext->lightSize, 1
 	};
 	GLuint indices[] = {
 		0, 1, 2, 0, 2, 3,
@@ -429,6 +439,9 @@ void SceneContext::loadTestLight()
 	glGenBuffers(1, &testLightIndiceVBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, testLightIndiceVBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * 6 * sizeof(GLuint), indices, GL_STATIC_DRAW);
+
+	
+
 }
 
 void SceneContext::displayGrid(GameContext *gameContext)
@@ -466,9 +479,9 @@ void SceneContext::displayTestLight(GameContext *gameContext)
 	GLfloat *projection = getMatrix(gameContext->proMatrix);
 	glUniformMatrix4fv((gameContext->mLightShaderProgram)->proLoc, 1, GL_FALSE, projection);
 
-	GLint loc = glGetUniformLocation(gameContext->mLightShaderProgram->programObject, "a_color");
-	GLfloat lightColor[] = { 1.0, 1.0, 1.0, 1.0 };
-	glUniform4fv(loc, 1, lightColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_color"), 1, gameContext->lightColor);
+	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_position"), 1, gameContext->lightPosition);
+
 	
 	delete[] model;
 	delete[] view;

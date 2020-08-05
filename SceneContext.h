@@ -29,7 +29,7 @@ public:
 	SceneStatus getSceneStatus() const { return mSceneStatus; }
 	FbxScene *getScene() const { return mScene; }
 	
-	bool loadFile();
+	bool loadFile(GameContext *gameContext);
 	bool onDisplay(GameContext *gameContext);
 	
 
@@ -37,9 +37,9 @@ public:
 private:
 	void displayGrid(GameContext *gameContext);
 	void displayTestLight(GameContext *gameContext);
-	void loadTestLight();
+	void loadTestLight(GameContext *gameContext);
 	bool loadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject);
-	void loadCacheRecursive(FbxScene *pScene, FbxAnimLayer *pAnimLayer);
+	void loadCacheRecursive(FbxScene *pScene, FbxAnimLayer *pAnimLayer, GameContext *gameContext);
 	void loadCacheRecursive(FbxNode *pNode, FbxAnimLayer *pAnimLayer);
 
 	const char *mFileName;
