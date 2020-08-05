@@ -281,7 +281,7 @@ bool GameContext::loadShaderProgram()
 		//"	vec4 specular = specularStrength * spec * material.specular;				\n"
 		"	vec4 specular = light_color * (spec * material.specular);				\n"		
 
-		"   fragColor = 0.2 * emissive + 0.2 * ambient + 0.5 * diffuse + specular;							\n"
+		"   fragColor = 0.8 * emissive + 0.8 * ambient + 0.8 * diffuse + specular;							\n"
 
 		"}																		\n";
 

@@ -52,7 +52,13 @@ private:
 	FbxScene *mScene;
 	FbxImporter *mImporter;
 	FbxAnimLayer *mCurrentAnimLayer;
-
+	
 	FbxTime mFrameTime, mStart, mStop, mCurrentTime;
 	FbxTime mCacheStart, mCacheStop;
+
+	int mPoseIndex;
+	FbxArray<FbxString *> mAnimStackNameArray;
+	FbxArray<FbxPose *> mPoseArray;
+
+	bool mPause;
 };

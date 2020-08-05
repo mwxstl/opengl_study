@@ -461,8 +461,9 @@ int main(int arc, char *argv[])
 	{
 		exit(1);
 	}
-	const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
-	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
+	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Characters\\Animated\\Boy_Hat_Animations.fbx");
+	const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
 	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\crops\\Apple.fbx");
 	//const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
 	//const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");

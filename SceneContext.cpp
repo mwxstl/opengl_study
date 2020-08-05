@@ -3,12 +3,14 @@
 #include "SceneCache.h"
 #include "ShaderProgram.h"
 #include "targa.h"
+#include "GetPosition.h"
 FbxManager *mManager;
 FbxScene *mScene;
 FbxImporter *mImporter;
 SceneContext::SceneContext(const char* pFileName)
 : mFileName(pFileName), mSceneStatus(UNLOADED),
-mManager(NULL), mScene(NULL), mImporter(NULL), mCurrentAnimLayer(NULL)
+mManager(NULL), mScene(NULL), mImporter(NULL), mCurrentAnimLayer(NULL),
+mPoseIndex(-1), mPause(false)
 {
 	if (mFileName == NULL)
 	{
@@ -53,6 +55,7 @@ mManager(NULL), mScene(NULL), mImporter(NULL), mCurrentAnimLayer(NULL)
 }
 SceneContext::~SceneContext()
 {
+	FbxArrayDelete(mAnimStackNameArray);
 	
 }
 
@@ -84,6 +87,7 @@ bool SceneContext::loadFile(GameContext *gameContext)
 				{
 					cout << details[i]->Buffer() << endl;
 				}
+				FbxArrayDelete<FbxString *>(details);
 			}
 
 			if (mImporter->GetStatus().GetCode() != FbxStatus::eSuccess)
@@ -125,8 +129,9 @@ bool SceneContext::loadFile(GameContext *gameContext)
 			FbxSystemUnit::cm.ConvertScene(mScene, conversionOptions);
 		}
 
-		// todo get the list of all the animation stack
-
+		// get the list of all the animation stack
+		mScene->FillAnimStackNameArray(mAnimStackNameArray);
+		
 		// todo get the list of all the cameras in the scene.
 		
 		//convert mesh, nurbs and patch into triangle mesh
@@ -300,7 +305,47 @@ bool SceneContext::loadTextureFromFile(const FbxString& pFilePath, unsigned& pTe
 	}
 	return false;
 }
-void drawMesh(FbxNode *pNode, GameContext *gameContext)
+
+void computeSkinDeformation(FbxAMatrix & pGlobalPosition,
+	FbxMesh *pMesh,
+	FbxTime &pTime,
+	FbxVector4 *pVertexArray,
+	FbxPose *pPose)
+{
+	FbxSkin *skinDeformer = (FbxSkin *)pMesh->GetDeformer(0, FbxDeformer::eSkin);
+	FbxSkin::EType skinningType = skinDeformer->GetSkinningType();
+
+	if (skinningType == FbxSkin::eLinear || skinningType == FbxSkin::eRigid)
+	{
+		computeLinearDeformation(pGlobalPosition, pMesh, pTime, pVertexArray, pPose);
+	}
+	else if (skinningType == FbxSkin::eDualQuaternion)
+	{
+		computeDualQuaternionDeformation(pGlobalPosition, pMesh, pTime, pVertexArray, pPose);
+	}
+	else if (skinningType == FbxSkin::eBlend)
+	{
+		int vertexCount = pMesh->GetControlPointsCount();
+
+		FbxVector4 *vertexArrayLinear = new FbxVector4[vertexCount];
+		memcpy(vertexArrayLinear, pMesh->GetControlPoints(), vertexCount * sizeof(FbxVector4));
+
+		FbxVector4* vertexArrayDQ = new FbxVector4[vertexCount];
+		memcpy(vertexArrayDQ, pMesh->GetControlPoints(), vertexCount * sizeof(FbxVector4));
+
+		ComputeLinearDeformation(pGlobalPosition, pMesh, pTime, vertexArrayLinear, pPose);
+		ComputeQuaternionDeformation(pGlobalPosition, pMesh, pTime, vertexArrayLinear, pPose);
+
+		int blendWeightsCount = skinDeformer->GetControlPointIndicesCount();
+		for (int bwIndex = 0; bwIndex < blendWeightsCount; ++bwIndex)
+		{
+			double blendWeight = skinDeformer->GetControlPointBlendWeights()[bwIndex];
+			pVertexArray[bwIndex] = vertexArrayDQ[bwIndex] * blendWeight + vertexArrayLinear[bwIndex] * (1 - blendWeight);
+		}
+	}
+}
+void drawMesh(FbxNode *pNode, GameContext *gameContext, FbxTime &pTime, FbxAnimLayer *pAnimLayer,
+	FbxAMatrix & pGlobalPosition, FbxPose *pPose)
 {
 	FbxMesh *lMesh = pNode->GetMesh();
 	const int lVertexCount = lMesh->GetControlPointsCount();
@@ -311,7 +356,47 @@ void drawMesh(FbxNode *pNode, GameContext *gameContext)
 	}
 
 	const VBOMesh *lMeshCache = static_cast<VBOMesh *>(lMesh->GetUserDataPtr());
+	
+	// if it has some defomer conection, update the vertices position
 
+	const bool hasVertexCache = false;
+	const bool hasShape = false;
+	const bool hasSkin = lMesh->GetDeformerCount(FbxDeformer::eSkin) > 0;
+	const bool hasDeformation = hasVertexCache || hasShape || hasSkin;
+	FbxVector4 *vertexArray = NULL;
+	if (!lMeshCache || hasDeformation)
+	{
+		vertexArray = new FbxVector4[lVertexCount];
+		memcpy(vertexArray, lMesh->GetControlPoints(), lVertexCount * sizeof(FbxVector4));
+	}
+
+	if (hasDeformation)
+	{
+		// active vertex cache deformer will overwrite any other deformer
+		if (hasVertexCache)
+		{
+			// todo readVertexCacheData
+		}
+		else
+		{
+			if (hasShape)
+			{
+				// todo deform the vertex array with the shapes.
+			}
+
+			const int skinCount = lMesh->GetDeformerCount(FbxDeformer::eSkin);
+			int clusterCount = 0;
+			for (int skinIndex = 0; skinIndex < skinCount; ++skinIndex)
+			{
+				clusterCount += ((FbxSkin *)(lMesh->GetDeformer(skinIndex, FbxDeformer::eSkin)))->GetClusterCount();
+			}
+			if (clusterCount)
+			{
+				computeSkinDeformation(pGlobalPosition, lMesh, pTime, vertexArray, pPose);
+			}
+		}
+	}
+	
 	if (lMeshCache)
 	{
 		// begin draw
@@ -346,7 +431,13 @@ void drawMesh(FbxNode *pNode, GameContext *gameContext)
 
 	}
 }
-void drawNode(FbxNode *pNode, GameContext *gameContext)
+void drawNode(FbxNode *pNode, 
+	GameContext *gameContext,
+	FbxTime & pTime,
+	FbxAnimLayer *pAnimLayer,
+	FbxAMatrix & pParentGlobalPosition,
+	FbxAMatrix & pGlobalPosition,
+	FbxPose *pPose)
 {
 	FbxNodeAttribute* lNodeAttribute = pNode->GetNodeAttribute();
 
@@ -355,20 +446,28 @@ void drawNode(FbxNode *pNode, GameContext *gameContext)
 		switch (lNodeAttribute->GetAttributeType())
 		{
 		case FbxNodeAttribute::eMesh:
-			drawMesh(pNode, gameContext);
+			drawMesh(pNode, gameContext, pTime, pAnimLayer, pGlobalPosition, pPose);
 			break;
 		default:
 			break;
 		}
 	}
 }
-void drawNodeRecursive(FbxNode *pNode, GameContext *gameContext)
+void drawNodeRecursive(FbxNode *pNode, GameContext *gameContext, FbxTime & pTime,
+	FbxAnimLayer *pAnimLayer, FbxAMatrix &pParentGlobalPosition, FbxPose *pPose)
 {
-	drawNode(pNode, gameContext);
+	FbxAMatrix globalPosition = getGlobalPosition(pNode, pTime, pPose, &pParentGlobalPosition);
+	if (pNode->GetNodeAttribute())
+	{
+		FbxAMatrix geometryOffset = getGeometry(pNode);
+		FbxAMatrix globalOffPosition = globalPosition * geometryOffset;
+		drawNode(pNode, gameContext, pTime, pAnimLayer, pParentGlobalPosition, globalPosition, pPose);
+
+	}
 	const int lChildCount = pNode->GetChildCount();
 	for (int i = 0; i < lChildCount; i++)
 	{
-		drawNodeRecursive(pNode->GetChild(i), gameContext);
+		drawNodeRecursive(pNode->GetChild(i), gameContext, pTime, pAnimLayer, pParentGlobalPosition, pPose);
 	}
 }
 
@@ -388,10 +487,16 @@ bool SceneContext::onDisplay(GameContext* gameContext)
 	gameContext->mLightShaderProgram->viewLoc = glGetUniformLocation(gameContext->mLightShaderProgram->programObject, "viewMatrix");
 	gameContext->mLightShaderProgram->proLoc = glGetUniformLocation(gameContext->mLightShaderProgram->programObject, "proMatrix");
 	
-	displayGrid(gameContext);
 	displayTestLight(gameContext);
 	
 	glUseProgram(gameContext->mShaderProgram->programObject);
+
+	FbxPose *pose = NULL;
+	if (mPoseIndex != -1)
+	{
+		pose = mScene->GetPose(mPoseIndex);
+	}
+	
 	gameContext->mShaderProgram->modelLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "modelMatrix");
 	gameContext->mShaderProgram->viewLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "viewMatrix");
 	gameContext->mShaderProgram->proLoc = glGetUniformLocation(gameContext->mShaderProgram->programObject, "proMatrix");
@@ -402,8 +507,12 @@ bool SceneContext::onDisplay(GameContext* gameContext)
 	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_color"), 1, gameContext->lightColor);
 	
 	glUniform4fv(glGetUniformLocation(gameContext->mShaderProgram->programObject, "light_position"), 1, gameContext->lightPosition);
+
+	displayGrid(gameContext);
+
+	FbxAMatrix dummyGlobalPosition;
 	
-	drawNodeRecursive(rootNode, gameContext);
+	drawNodeRecursive(rootNode, gameContext, mCurrentTime, mCurrentAnimLayer, dummyGlobalPosition, pose);
 	return true;
 }
 
