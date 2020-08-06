@@ -308,6 +308,60 @@ bool VBOMesh::initialize(const FbxMesh* mesh)
 	mIndicesCount = polygonCount * TRIANGLE_VERTEX_COUNT;
 	return true;
 }
+
+void VBOMesh::updateVertexPosition(const FbxMesh* pMesh, const FbxVector4* pVertices) const
+{
+	// convert to the same sequence with data in gpu.
+	float *vertices = NULL;
+	int vertexCount = 0;
+
+	if (mAllByControlPoint)
+	{
+		vertexCount = pMesh->GetControlPointsCount();
+		vertices = new GLfloat[vertexCount * VERTEX_STRIDE];
+		for (int i = 0; i < vertexCount; ++i)
+		{
+			vertices[i * VERTEX_STRIDE] = static_cast<GLfloat>(pVertices[i][0]);
+			vertices[i * VERTEX_STRIDE + 1] = static_cast<GLfloat>(pVertices[i][1]);
+			vertices[i * VERTEX_STRIDE + 2] = static_cast<GLfloat>(pVertices[i][2]);
+			vertices[i * VERTEX_STRIDE + 3] = 1;
+		}
+	}
+	else
+	{
+		const int polygonCount = pMesh->GetPolygonCount();
+		vertexCount = polygonCount * TRIANGLE_VERTEX_COUNT;
+		vertices = new GLfloat[vertexCount * VERTEX_STRIDE];
+
+		vertexCount = 0;
+		for (int polygonIndex = 0; polygonIndex < polygonCount; ++polygonIndex)
+		{
+			for (int verticeIndex = 0; verticeIndex < TRIANGLE_VERTEX_COUNT; ++verticeIndex)
+			{
+				const int controlPointIndex = pMesh->GetPolygonVertex(polygonIndex, verticeIndex);
+				// if the controlPointIndex is -1, we probably have a corrupted mesh data.
+				// at this point, it is not guaranted that the cache will work as expected.
+				if (controlPointIndex >= 0)
+				{
+					vertices[vertexCount * VERTEX_STRIDE] = static_cast<GLfloat>(pVertices[controlPointIndex][0]);
+					vertices[vertexCount * VERTEX_STRIDE + 1] = static_cast<GLfloat>(pVertices[controlPointIndex][1]);
+					vertices[vertexCount * VERTEX_STRIDE + 2] = static_cast<GLfloat>(pVertices[controlPointIndex][2]);
+					vertices[vertexCount * VERTEX_STRIDE + 3] = 1;
+				}
+				++vertexCount;
+			}
+		}
+	}
+
+	if (vertices)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
+		glBufferData(GL_ARRAY_BUFFER, vertexCount * VERTEX_STRIDE * sizeof(float), vertices, GL_STATIC_DRAW);
+		delete[] vertices;
+	}
+}
+
+
 void VBOMesh::beginDraw() const
 {
 	glBindBuffer(GL_ARRAY_BUFFER, mVBONames[VERTEX_VBO]);
@@ -409,21 +463,24 @@ bool MaterialCache::initialize(const FbxSurfaceMaterial* pMaterial)
 {
 	const FbxDouble3 emissive = getMaterialProperty(pMaterial,
 		FbxSurfaceMaterial::sEmissive, FbxSurfaceMaterial::sEmissiveFactor, mEmissive.mTextureName);
-	if (emissive[0] == 0.0 && emissive[1] == 0.0 && emissive[2] == 0.0)
-	{
-		FbxSurfaceLambert *material = (FbxSurfaceLambert *)pMaterial;
-		FbxDouble3 emissive2 = material->Emissive.Get();
-		//FbxDouble emissiveFactor = material->EmissiveFactor.Get();
-		//GLfloat factor = static_cast<GLfloat>(emissiveFactor);
-		mEmissive.mColor[0] = static_cast<GLfloat>(emissive2[0]);
-		mEmissive.mColor[1] = static_cast<GLfloat>(emissive2[1]);
-		mEmissive.mColor[2] = static_cast<GLfloat>(emissive2[2]);
-	} else
-	{
 		mEmissive.mColor[0] = static_cast<GLfloat>(emissive[0]);
 		mEmissive.mColor[1] = static_cast<GLfloat>(emissive[1]);
 		mEmissive.mColor[2] = static_cast<GLfloat>(emissive[2]);
-	}
+	//if (emissive[0] == 0.0 && emissive[1] == 0.0 && emissive[2] == 0.0)
+	//{
+	//	FbxSurfaceLambert *material = (FbxSurfaceLambert *)pMaterial;
+	//	FbxDouble3 emissive2 = material->Emissive.Get();
+	//	//FbxDouble emissiveFactor = material->EmissiveFactor.Get();
+	//	//GLfloat factor = static_cast<GLfloat>(emissiveFactor);
+	//	mEmissive.mColor[0] = static_cast<GLfloat>(emissive2[0]);
+	//	mEmissive.mColor[1] = static_cast<GLfloat>(emissive2[1]);
+	//	mEmissive.mColor[2] = static_cast<GLfloat>(emissive2[2]);
+	//} else
+	//{
+	//	mEmissive.mColor[0] = static_cast<GLfloat>(emissive[0]);
+	//	mEmissive.mColor[1] = static_cast<GLfloat>(emissive[1]);
+	//	mEmissive.mColor[2] = static_cast<GLfloat>(emissive[2]);
+	//}
 
 	const FbxDouble3 ambient = getMaterialProperty(pMaterial,
 		FbxSurfaceMaterial::sAmbient, FbxSurfaceMaterial::sAmbientFactor, mAmbient.mTextureName);
@@ -454,7 +511,7 @@ bool MaterialCache::initialize(const FbxSurfaceMaterial* pMaterial)
 		mShininess = 32.0;
 	}
 
-	print();
+	//print();
 
 	return true;
 }

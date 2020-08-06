@@ -28,14 +28,13 @@ public:
 
 	SceneStatus getSceneStatus() const { return mSceneStatus; }
 	FbxScene *getScene() const { return mScene; }
+	const FbxTime getFrameTime() const { return mFrameTime; }
 	
 	bool loadFile(GameContext *gameContext);
 	bool onDisplay(GameContext *gameContext);
-	
 
-	
 private:
-	void displayGrid(GameContext *gameContext);
+	void displayGrid(GameContext *gameContext, const FbxAMatrix & pTransform);
 	void displayTestLight(GameContext *gameContext);
 	void loadTestLight(GameContext *gameContext);
 	bool loadTextureFromFile(const FbxString & pFilePath, unsigned int & pTextureObject);

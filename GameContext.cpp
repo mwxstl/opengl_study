@@ -273,15 +273,13 @@ bool GameContext::loadShaderProgram()
 	
 		//"	float specularStrength = 0.5;										\n"
 		"	vec3 viewDir = normalize(vec3(viewPos) - vec3(FragPos));			\n"
-		"	vec3 reflectDir = reflect(-lightDir, norm);							\n"
-		"	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);			\n"
-		"	if (dot(norm, lightDir) < 0.0) {									\n"
-		"		spec = 0.0;														\n"
-		"	}																	\n"
+		"	vec3 halfDir = normalize(viewDir + lightDir);						\n"
+		"	float spec = pow(max(dot(norm, halfDir), 0.0), material.shininess);	\n"
+		
 		//"	vec4 specular = specularStrength * spec * material.specular;				\n"
 		"	vec4 specular = light_color * (spec * material.specular);				\n"		
 
-		"   fragColor = 0.8 * emissive + 0.8 * ambient + 0.8 * diffuse + specular;							\n"
+		"   fragColor = emissive + ambient + diffuse + specular;							\n"
 
 		"}																		\n";
 

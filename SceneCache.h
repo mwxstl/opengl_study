@@ -12,6 +12,7 @@ public:
 	~VBOMesh();
 
 	bool initialize(const FbxMesh *pMesh);
+	void updateVertexPosition(const FbxMesh *pMesh, const FbxVector4 *pVertices) const;
 	void beginDraw() const;
 	void draw(GameContext *gameContext, FbxAMatrix globalTransform, int materialIndex) const;
 	void endDraw() const;

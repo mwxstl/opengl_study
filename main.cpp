@@ -3,8 +3,8 @@
 #include "SceneContext.h"
 
 const char * GAME_NAME = "MiniGame";
-const int DEFAULT_WINDOW_WIDTH = 960;
-const int DEFAULT_WINDOW_HEIGHT = 960;
+const int DEFAULT_WINDOW_WIDTH = 480;
+const int DEFAULT_WINDOW_HEIGHT = 480;
 
 ///
 //  ESWindowProc()
@@ -461,9 +461,11 @@ int main(int arc, char *argv[])
 	{
 		exit(1);
 	}
-	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	//FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Animals\\Animated\\CatAnimations.fbx");
+	const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
+	//const FbxString fileName("D:\\resource\\Iron_Man_Mark_44_Hulkbuster\\Iron_Man_Mark_44_Hulkbuster_fbx.FBX");
 	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Characters\\Animated\\Boy_Hat_Animations.fbx");
-	const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
+	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
 	//const FbxString fileName("D:\\resource\\farm-life\\AllModels_Sepearated\\crops\\Apple.fbx");
 	//const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Buildings\\Warehouse.fbx");
 	//const FbxString fileName("F:\\resource\\farm-life\\AllModels_Sepearated\\Map_7.fbx");
@@ -480,6 +482,5 @@ int main(int arc, char *argv[])
 	{
 		gameContext.shutdownFunc(&gameContext);
 	}
-
 	return 0;
 }
